@@ -51,7 +51,6 @@ Die Zielgruppe umfasst **Freundeskreise, Vereine, Unternehmen und Studierende**,
 
 #### **Erweiterte Standort-Funktionen**
 
-- GPS-basierte Event-Check-ins für bestätigte Teilnehmer.
 - Kartenansicht für geplante Events.
 
 #### **Terminfindung & Abstimmungen**
