@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "799626897965",
+    "project_id": "eventradar-3a7c6",
+    "storage_bucket": "eventradar-3a7c6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:799626897965:android:7e4c0fbba72623db3526a4",
+        "android_client_info": {
+          "package_name": "cc.eventradar.event_radar"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAaQ8EdmsDYAZbJK_3tC7zpCPWo5dEoUqE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
