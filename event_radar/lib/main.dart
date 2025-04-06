@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
-import 'core/viewmodels/event_creation_viewmodel.dart';
-import 'views/event_creation_screen.dart';
+import 'views/event_list_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,17 +17,12 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => EventCreationViewModel()),
-      ],
-      child: MaterialApp(
-        title: 'Flutter Event App',
-        theme: ThemeData(
-          primarySwatch: Colors.blue,
-        ),
-        home: const EventCreationScreen(),
+    return MaterialApp(
+      title: 'Flutter Event App',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
       ),
+      home: const EventListScreen(),
     );
   }
 }

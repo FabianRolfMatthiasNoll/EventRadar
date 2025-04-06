@@ -40,13 +40,12 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
   }
 
   Future<void> _pickLocation(EventCreationViewModel viewModel) async {
-    // Navigiere zum MapPickerScreen und erhalte das ausgewählte LatLng zurück.
     final result = await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const MapPickerScreen()),
     );
     if (result != null) {
-      viewModel.location = result; // result muss ein LatLng sein
+      viewModel.location = result;
       setState(() {});
     }
   }
@@ -54,7 +53,6 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
   @override
   Widget build(BuildContext context) {
     final viewModel = Provider.of<EventCreationViewModel>(context);
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Event Erstellung'),
@@ -71,16 +69,47 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
           key: _formKey,
           child: Column(
             children: [
-              // Event Name
-              TextFormField(
-                decoration: const InputDecoration(labelText: 'Event Name'),
-                onChanged: (value) => viewModel.title = value,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Bitte geben Sie einen Event Namen ein';
-                  }
-                  return null;
-                },
+              // Erste Zeile: Kreis (Bild) links und Event Name rechts
+              Row(
+                children: [
+                  GestureDetector(
+                    onTap: () async {
+                      await viewModel.pickImage();
+                    },
+                    child: CircleAvatar(
+                      radius: 40,
+                      backgroundColor: Colors.grey[300],
+                      backgroundImage: viewModel.imageFile != null
+                          ? FileImage(viewModel.imageFile!)
+                          : null,
+                      child: viewModel.imageFile == null
+                          ? Text(
+                        "Foto\nhochladen",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                        ),
+                      )
+                          : null,
+                    ),
+                  ),
+                  const SizedBox(width: 16.0),
+                  Expanded(
+                    child: TextFormField(
+                      decoration: const InputDecoration(
+                        labelText: 'Event Name',
+                      ),
+                      onChanged: (value) => viewModel.title = value,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Bitte geben Sie einen Event Namen ein';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 16.0),
               // Datum & Zeit auswählen
@@ -98,7 +127,7 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                 ],
               ),
               const SizedBox(height: 16.0),
-              // Map Picker für Standort
+              // Map Picker für den Ort
               Row(
                 children: [
                   Expanded(

@@ -1,15 +1,41 @@
+import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import '../models/event.dart';
 
 class EventService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  Future<void> createEvent(Event event) async {
-    // Event-Dokument anlegen
-    DocumentReference eventRef =
-    await _firestore.collection('events').add(event.toMap());
+  Future<String> uploadEventImage(File imageFile) async {
+    final storageRef = FirebaseStorage.instance
+        .ref()
+        .child("event_images")
+        .child("${DateTime.now().millisecondsSinceEpoch}.jpg");
+    final uploadTask = storageRef.putFile(imageFile);
+    final snapshot = await uploadTask;
+    return await snapshot.ref.getDownloadURL();
+  }
 
-    // Standard-Chat-Kanal als Subcollection erstellen
+  Future<void> createEvent(Event event, {File? imageFile}) async {
+    String imageUrl;
+    if (imageFile != null) {
+      imageUrl = await uploadEventImage(imageFile);
+    } else {
+      imageUrl = event.image;
+    }
+
+    DocumentReference eventRef =
+    await _firestore.collection('events').add({
+      'title': event.title,
+      'date': event.date,
+      'location': event.location,
+      'visibility': event.visibility,
+      'description': event.description,
+      'image': imageUrl,
+      'createdAt': DateTime.now(),
+    });
+
+    // Standard-Chat-Kanal als Subcollection anlegen
     DocumentReference channelRef =
     await eventRef.collection('channels').add({
       'channelName': 'Standard Chat',
@@ -17,13 +43,29 @@ class EventService {
       'createdAt': DateTime.now(),
     });
 
-    // Erste Nachricht im Kanal anlegen
+    // Erste Nachricht im Kanal erstellen
     await channelRef.collection('messages').add({
       'text': 'Event wurde erstellt',
       'type': 'update',
-      'senderId': 'admin', // TODO: Später gegen User ID austauschen
+      'senderId': 'admin', // TODO: Hier später UserID verwenden
       'createdAt': DateTime.now(),
       'metadata': {},
     });
+  }
+
+  Future<List<Event>> getEvents() async {
+    QuerySnapshot snapshot = await _firestore.collection('events').get();
+    List<Event> events = snapshot.docs.map((doc) {
+      Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+      return Event(
+        title: data['title'] ?? '',
+        date: data['date']?.toDate() ?? DateTime.now(),
+        location: data['location'],
+        visibility: data['visibility'] ?? 'public',
+        description: data['description'],
+        image: data['image'] ?? '',
+      );
+    }).toList();
+    return events;
   }
 }

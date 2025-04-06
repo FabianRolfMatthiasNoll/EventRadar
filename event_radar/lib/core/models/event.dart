@@ -7,6 +7,7 @@ class Event {
   final String visibility;
   final String? description;
   final String image; // Bild-URL oder Initialen für Logos etc
+  // TODO: Add User ID of creator
 
   Event({
     required this.title,
