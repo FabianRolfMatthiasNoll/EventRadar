@@ -6,6 +6,7 @@ import 'views/event_list_screen.dart';
 import 'views/event_creation_screen.dart';
 import 'package:provider/provider.dart';
 import 'core/viewmodels/event_creation_viewmodel.dart';
+import 'core/viewmodels/event_list_viewmodel.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 Future<void> main() async {
@@ -17,11 +18,12 @@ Future<void> main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // To access firebase stuff with any device -> Speeds up app in dev mode
+  // Activate App Check for development using debug providers.
   await FirebaseAppCheck.instance.activate(
     androidProvider: AndroidProvider.debug,
     appleProvider: AppleProvider.debug,
   );
+
   runApp(const MyApp());
 }
 
@@ -34,10 +36,11 @@ class MyApp extends StatelessWidget {
       title: 'Event Radar',
       initialRoute: '/',
       routes: {
-        '/': (context) => const EventListScreen(),
-        // Wrap the EventCreationScreen with ChangeNotifierProvider so that
-        // Provider.of<EventCreationViewModel> can find the viewmodel in its context.
-        '/create-event': (context) => ChangeNotifierProvider(
+        '/': (context) => ChangeNotifierProvider<EventListViewModel>(
+          create: (_) => EventListViewModel(),
+          child: const EventListScreen(),
+        ),
+        '/create-event': (context) => ChangeNotifierProvider<EventCreationViewModel>(
           create: (_) => EventCreationViewModel(),
           child: const EventCreationScreen(),
         ),
