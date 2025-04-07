@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../core/viewmodels/event_creation_viewmodel.dart';
 import 'map_picker_screen.dart';
+import '../widgets/static_map_snippet.dart';
 
 class EventCreationScreen extends StatefulWidget {
   const EventCreationScreen({Key? key}) : super(key: key);
@@ -69,7 +70,7 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
           key: _formKey,
           child: Column(
             children: [
-              // Erste Zeile: Kreis (Bild) links und Event Name rechts
+              // Row: Circle for image selection and Event Name
               Row(
                 children: [
                   GestureDetector(
@@ -81,10 +82,13 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                       backgroundColor: Colors.grey[300],
                       backgroundImage: viewModel.imageFile != null
                           ? FileImage(viewModel.imageFile!)
-                          : (viewModel.imageUrl != null && viewModel.imageUrl!.startsWith('http')
-                          ? NetworkImage(viewModel.imageUrl!) as ImageProvider
-                          : null),
-                      child: viewModel.imageFile == null && (viewModel.imageUrl == null || !viewModel.imageUrl!.startsWith('http'))
+                          : (viewModel.imageUrl != null &&
+                          viewModel.imageUrl!.startsWith('http'))
+                          ? NetworkImage(viewModel.imageUrl!)
+                          : null,
+                      child: viewModel.imageFile == null &&
+                          (viewModel.imageUrl == null ||
+                              !viewModel.imageUrl!.startsWith('http'))
                           ? Text(
                         "Foto\nhochladen",
                         textAlign: TextAlign.center,
@@ -114,7 +118,7 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                 ],
               ),
               const SizedBox(height: 16.0),
-              // Datum & Zeit auswählen
+              // Date & Time picker
               Row(
                 children: [
                   Expanded(
@@ -129,7 +133,7 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                 ],
               ),
               const SizedBox(height: 16.0),
-              // Map Picker für den Ort
+              // Map Picker for location
               Row(
                 children: [
                   Expanded(
@@ -144,7 +148,18 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                 ],
               ),
               const SizedBox(height: 16.0),
-              // Beschreibung (optional)
+              // Static map snippet of selected location
+              if (viewModel.location != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16.0),
+                  child: StaticMapSnippet(
+                    location: viewModel.location!,
+                    width: 600,
+                    height: 200,
+                    zoom: 15,
+                  ),
+                ),
+              // Description
               TextFormField(
                 decoration: const InputDecoration(
                   labelText: 'Beschreibung (optional)',
@@ -153,7 +168,7 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                 onChanged: (value) => viewModel.description = value,
               ),
               const SizedBox(height: 16.0),
-              // Radiobuttons für Sichtbarkeit
+              // Visibility radio buttons
               const Align(
                 alignment: Alignment.centerLeft,
                 child: Text('Sichtbarkeit:'),
@@ -185,7 +200,7 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                 ],
               ),
               const SizedBox(height: 16.0),
-              // Button zum Erstellen des Events
+              // Create Event button
               ElevatedButton(
                 onPressed: () async {
                   if (_formKey.currentState!.validate()) {

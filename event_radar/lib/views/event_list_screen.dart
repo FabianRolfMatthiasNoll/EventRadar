@@ -71,8 +71,9 @@ class EventListScreen extends StatelessWidget {
         bottomNavigationBar: BottomNavigationBar(
           items: const [
             BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+            BottomNavigationBarItem(icon: Icon(Icons.map), label: 'EventMap'),
             BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Suchen'),
-            BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profil'),
+
           ],
         ),
       ),
