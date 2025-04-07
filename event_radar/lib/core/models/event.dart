@@ -9,6 +9,7 @@ class Event {
   final String image; // URL oder Fallback (z. B. Initialen)
   final String creatorId;
 
+  // TODO: Create unique id or fetch somehow firebase id.
   Event({
     required this.title,
     required this.date,

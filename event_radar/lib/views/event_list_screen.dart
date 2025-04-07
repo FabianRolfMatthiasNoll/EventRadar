@@ -69,11 +69,21 @@ class EventListScreen extends StatelessWidget {
         },
       ),
       bottomNavigationBar: BottomNavigationBar(
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.map), label: 'EventMap'),
-          BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Suchen'),
-        ],
+        currentIndex: 0, // Home selected
+        onTap: (index) {
+        if (index == 0) {
+          // Already in Home.
+        } else if (index == 1) {
+          Navigator.pushNamed(context, '/map-events');
+        } else if (index == 2) {
+          // TODO: Navigate to search or profile.
+        }
+        },
+          items: const [
+            BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+            BottomNavigationBarItem(icon: Icon(Icons.map), label: 'EventMap'),
+            BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Suchen'),
+          ],
         // Configure currentIndex and onTap as needed.
       ),
     );

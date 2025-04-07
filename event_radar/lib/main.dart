@@ -1,6 +1,8 @@
+import 'package:event_radar/views/event_map_screen.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'core/viewmodels/event_map_viewmodel.dart';
 import 'firebase_options.dart';
 import 'views/event_list_screen.dart';
 import 'views/event_creation_screen.dart';
@@ -43,6 +45,10 @@ class MyApp extends StatelessWidget {
         '/create-event': (context) => ChangeNotifierProvider<EventCreationViewModel>(
           create: (_) => EventCreationViewModel(),
           child: const EventCreationScreen(),
+        ),
+        '/map-events': (context) => ChangeNotifierProvider<EventMapViewModel>(
+          create: (_) => EventMapViewModel(),
+          child: const EventMapScreen(),
         ),
       },
       theme: ThemeData(

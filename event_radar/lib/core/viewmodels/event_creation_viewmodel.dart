@@ -31,7 +31,7 @@ class EventCreationViewModel extends ChangeNotifier {
 
   Future<void> pickImage() async {
     // TODO: Expiremnt with image_croper to get good image size and quality for these small images
-    final XFile? pickedFile = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 50);
+    final XFile? pickedFile = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 30);
     if (pickedFile != null) {
       imageFile = File(pickedFile.path);
       notifyListeners();
