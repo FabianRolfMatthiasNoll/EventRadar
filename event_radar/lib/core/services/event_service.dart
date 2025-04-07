@@ -24,8 +24,8 @@ class EventService {
       imageUrl = event.image;
     }
 
-    DocumentReference eventRef =
-    await _firestore.collection('events').add({
+    // Erstelle das Event-Dokument
+    DocumentReference eventRef = await _firestore.collection('events').add({
       'title': event.title,
       'date': event.date,
       'location': event.location,
@@ -33,17 +33,17 @@ class EventService {
       'description': event.description,
       'image': imageUrl,
       'createdAt': DateTime.now(),
+      'creatorId': event.creatorId,
     });
 
     // Standard-Chat-Kanal als Subcollection anlegen
-    DocumentReference channelRef =
-    await eventRef.collection('channels').add({
+    DocumentReference channelRef = await eventRef.collection('channels').add({
       'channelName': 'Standard Chat',
       'channelType': 'main',
       'createdAt': DateTime.now(),
     });
 
-    // Erste Nachricht im Kanal erstellen
+    // Erstelle die erste Nachricht im Kanal
     await channelRef.collection('messages').add({
       'text': 'Event wurde erstellt',
       'type': 'update',
@@ -64,6 +64,7 @@ class EventService {
         visibility: data['visibility'] ?? 'public',
         description: data['description'],
         image: data['image'] ?? '',
+        creatorId: data['creatorId'] ?? '',
       );
     }).toList();
     return events;

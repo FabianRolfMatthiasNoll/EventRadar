@@ -6,8 +6,8 @@ class Event {
   final GeoPoint location;
   final String visibility;
   final String? description;
-  final String image; // Bild-URL oder Initialen für Logos etc
-  // TODO: Add User ID of creator
+  final String image; // URL oder Fallback (z. B. Initialen)
+  final String creatorId;
 
   Event({
     required this.title,
@@ -16,6 +16,7 @@ class Event {
     required this.visibility,
     this.description,
     required this.image,
+    required this.creatorId,
   });
 
   Map<String, dynamic> toMap() {
@@ -27,6 +28,7 @@ class Event {
       'description': description,
       'image': image,
       'createdAt': DateTime.now(),
+      'creatorId': creatorId,
     };
   }
 }

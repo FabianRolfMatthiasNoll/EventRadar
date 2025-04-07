@@ -81,8 +81,10 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                       backgroundColor: Colors.grey[300],
                       backgroundImage: viewModel.imageFile != null
                           ? FileImage(viewModel.imageFile!)
-                          : null,
-                      child: viewModel.imageFile == null
+                          : (viewModel.imageUrl != null && viewModel.imageUrl!.startsWith('http')
+                          ? NetworkImage(viewModel.imageUrl!) as ImageProvider
+                          : null),
+                      child: viewModel.imageFile == null && (viewModel.imageUrl == null || !viewModel.imageUrl!.startsWith('http'))
                           ? Text(
                         "Foto\nhochladen",
                         textAlign: TextAlign.center,

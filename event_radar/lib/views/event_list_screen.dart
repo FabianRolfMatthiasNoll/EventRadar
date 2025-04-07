@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import '../core/viewmodels/event_creation_viewmodel.dart';
 import '../core/viewmodels/event_list_viewmodel.dart';
-import 'event_creation_screen.dart';
+import '../core/models/event.dart';
+import '../core/utils/initials_helper.dart';
 
 class EventListScreen extends StatelessWidget {
   const EventListScreen({Key? key}) : super(key: key);
+
+  Future<void> _refreshEvents(BuildContext context) async {
+    await Provider.of<EventListViewModel>(context, listen: false).fetchEvents();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,15 +24,9 @@ class EventListScreen extends StatelessWidget {
             IconButton(
               icon: const Icon(Icons.add),
               onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ChangeNotifierProvider(
-                      create: (_) => EventCreationViewModel(),
-                      child: const EventCreationScreen(),
-                    ),
-                  ),
-                );
+                Navigator.pushNamed(context, '/create-event').then((_) {
+                  _refreshEvents(context);
+                });
               },
             ),
           ],
@@ -38,44 +36,44 @@ class EventListScreen extends StatelessWidget {
             if (viewModel.isLoading) {
               return const Center(child: CircularProgressIndicator());
             }
-            return ListView.builder(
-              itemCount: viewModel.events.length,
-              itemBuilder: (context, index) {
-                final event = viewModel.events[index];
-                double distance = viewModel.computeDistance(event.location);
-                String formattedDate =
-                DateFormat('dd.MM.yyyy').format(event.date);
-                return ListTile(
-                  leading: CircleAvatar(
-                    child: Text(
-                      event.image.isNotEmpty
-                          ? event.image
-                          : event.title.substring(0, 1),
+            return RefreshIndicator(
+              onRefresh: () => _refreshEvents(context),
+              child: ListView.builder(
+                itemCount: viewModel.events.length,
+                itemBuilder: (context, index) {
+                  final Event event = viewModel.events[index];
+                  final double distance = viewModel.computeDistance(event.location);
+                  final String formattedDate = DateFormat('dd.MM.yyyy – HH:mm').format(event.date);
+
+                  return ListTile(
+                    leading: CircleAvatar(
+                      backgroundImage: (event.image.isNotEmpty && event.image.startsWith('http'))
+                          ? NetworkImage(event.image)
+                          : null,
+                      child: (event.image.isEmpty || !event.image.startsWith('http'))
+                          ? Text(getInitials(event.title))
+                          : null,
                     ),
-                  ),
-                  title: Text(event.title),
-                  subtitle: Text(
-                    "0 Teilnehmer • ${distance.toStringAsFixed(1)} km • $formattedDate",
-                    style:
-                    const TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
-                  onTap: () {
-                    // Hier könntest du z. B. in den Event-Detail Screen navigieren.
-                  },
-                );
-              },
+                    title: Text(event.title),
+                    subtitle: Text(
+                      "0 Teilnehmer • ${distance.toStringAsFixed(1)} km • $formattedDate",
+                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                    onTap: () {
+                      // TODO: Navigation zum Event Details dann hier
+                    },
+                  );
+                },
+              ),
             );
           },
         ),
         bottomNavigationBar: BottomNavigationBar(
           items: const [
             BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-            BottomNavigationBarItem(
-                icon: Icon(Icons.search), label: 'Suchen'),
-            BottomNavigationBarItem(
-                icon: Icon(Icons.person), label: 'Profil'),
+            BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Suchen'),
+            BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profil'),
           ],
-          // currentIndex und onTap können hier erweitert werden.
         ),
       ),
     );

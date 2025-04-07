@@ -13,13 +13,16 @@ class EventCreationViewModel extends ChangeNotifier {
 
   bool isLoading = false;
 
+  // Formularfelder
   String title = '';
   DateTime? dateTime;
   LatLng? location;
   String visibility = 'public';
   String description = '';
 
+  // Bild-Datei
   File? imageFile;
+  // Fallback: Wenn kein Bild hochgeladen wurde werden die Intialien des Namens verwendet
   String? imageUrl;
 
   bool validate() {
@@ -27,8 +30,8 @@ class EventCreationViewModel extends ChangeNotifier {
   }
 
   Future<void> pickImage() async {
-    final XFile? pickedFile =
-    await _picker.pickImage(source: ImageSource.gallery);
+    // TODO: Expiremnt with image_croper to get good image size and quality for these small images
+    final XFile? pickedFile = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 50);
     if (pickedFile != null) {
       imageFile = File(pickedFile.path);
       notifyListeners();
@@ -43,7 +46,7 @@ class EventCreationViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Fallback: Falls kein Bild ausgewählt wurde, verwende Initialen aus dem Eventnamen.
+      // Wenn kein Bild gewählt wurde, verwende Initialen
       final image = imageUrl ?? getInitials(title);
 
       final geoPoint = GeoPoint(location!.latitude, location!.longitude);
@@ -55,6 +58,7 @@ class EventCreationViewModel extends ChangeNotifier {
         visibility: visibility,
         description: description.isNotEmpty ? description : null,
         image: image,
+        creatorId: '', // TODO: Das muss dann die echte UID werden später
       );
 
       await _eventService.createEvent(event, imageFile: imageFile);

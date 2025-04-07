@@ -37,10 +37,9 @@ class EventListViewModel extends ChangeNotifier {
     }
   }
 
+  /// Berechnet die Entfernung in Kilometern vom Nutzer zum Event.
   double computeDistance(GeoPoint eventLocation) {
-    if (userPosition == null) {
-      return 0.0;
-    }
+    if (userPosition == null) return 0.0;
     return Geolocator.distanceBetween(
       userPosition!.latitude,
       userPosition!.longitude,
