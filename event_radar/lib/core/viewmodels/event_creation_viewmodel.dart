@@ -77,8 +77,9 @@ class EventCreationViewModel extends ChangeNotifier {
         visibility: visibility,
         description: description.isNotEmpty ? description : null,
         image: image,
-        creatorId: '', // TODO: insert actual user UID
+        creatorId: 'dummyUserId', // TODO: insert actual user UID
         promoted: promoted,
+        participantCount: 1, // Upon Creation we will always have one participant
       );
 
       await _eventService.createEvent(event, imageFile: imageFile);

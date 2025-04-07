@@ -9,11 +9,9 @@ class EventListViewModel extends ChangeNotifier {
 
   List<Event> events = [];
   bool isLoading = false;
-  Position? userPosition;
 
   EventListViewModel() {
     fetchEvents();
-    fetchUserPosition();
   }
 
   Future<void> fetchEvents() async {
@@ -28,17 +26,12 @@ class EventListViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> fetchUserPosition() async {
-    try {
-      userPosition = await Geolocator.getCurrentPosition();
-      notifyListeners();
-    } catch (e) {
-      print("Error fetching user position: $e");
-    }
+  Future<void> refreshEvents() async {
+    await fetchEvents();
   }
 
-  /// Berechnet die Entfernung in Kilometern vom Nutzer zum Event.
-  double computeDistance(GeoPoint eventLocation) {
+  /// Computes the distance (in km) from the user's current position to the event.
+  double computeDistance(GeoPoint eventLocation, Position? userPosition) {
     if (userPosition == null) return 0.0;
     return Geolocator.distanceBetween(
       userPosition!.latitude,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import '../core/providers/location_provider.dart';
 import '../core/viewmodels/event_list_viewmodel.dart';
 import '../core/models/event.dart';
 import '../core/utils/initials_helper.dart';
@@ -9,8 +10,12 @@ class EventListScreen extends StatelessWidget {
   const EventListScreen({Key? key}) : super(key: key);
 
   Future<void> _refreshEvents(BuildContext context) async {
-    await Provider.of<EventListViewModel>(context, listen: false).fetchEvents();
+    // Update global location
+    await Provider.of<LocationProvider>(context, listen: false).updateLocation();
+    // Refresh events
+    await Provider.of<EventListViewModel>(context, listen: false).refreshEvents();
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +45,8 @@ class EventListScreen extends StatelessWidget {
               itemCount: viewModel.events.length,
               itemBuilder: (context, index) {
                 final Event event = viewModel.events[index];
-                final double distance = viewModel.computeDistance(event.location);
+                final userPosition = Provider.of<LocationProvider>(context).currentPosition;
+                final double distance = viewModel.computeDistance(event.location, userPosition);
                 final String formattedDate =
                 DateFormat('dd.MM.yyyy – HH:mm').format(event.date);
 
@@ -56,7 +62,7 @@ class EventListScreen extends StatelessWidget {
                   ),
                   title: Text(event.title),
                   subtitle: Text(
-                    "0 Teilnehmer • ${distance.toStringAsFixed(1)} km • $formattedDate",
+                    "${event.participantCount} Teilnehmer • ${distance.toStringAsFixed(1)} km • $formattedDate",
                     style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                   onTap: () {
