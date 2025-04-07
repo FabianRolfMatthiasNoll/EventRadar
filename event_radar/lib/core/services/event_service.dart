@@ -34,6 +34,7 @@ class EventService {
       'image': imageUrl,
       'createdAt': DateTime.now(),
       'creatorId': event.creatorId,
+      'promoted': event.promoted,
     });
 
     // Standard-Chat-Kanal als Subcollection anlegen
@@ -65,6 +66,7 @@ class EventService {
         description: data['description'],
         image: data['image'] ?? '',
         creatorId: data['creatorId'] ?? '',
+        promoted: data['promoted'] ?? false,
       );
     }).toList();
     return events;

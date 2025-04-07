@@ -6,10 +6,10 @@ class Event {
   final GeoPoint location;
   final String visibility;
   final String? description;
-  final String image; // URL oder Fallback (z. B. Initialen)
+  final String image;
   final String creatorId;
+  final bool promoted;
 
-  // TODO: Create unique id or fetch somehow firebase id.
   Event({
     required this.title,
     required this.date,
@@ -18,6 +18,7 @@ class Event {
     this.description,
     required this.image,
     required this.creatorId,
+    required this.promoted,
   });
 
   Map<String, dynamic> toMap() {
@@ -30,6 +31,7 @@ class Event {
       'image': image,
       'createdAt': DateTime.now(),
       'creatorId': creatorId,
+      'promoted': promoted,
     };
   }
 }

@@ -75,10 +75,16 @@ class _EventMapScreenState extends State<EventMapScreen> {
 
   Set<Marker> _createMarkers(List<Event> events) {
     return events.map((event) {
+      final markerColor = event.promoted
+          ? BitmapDescriptor.hueYellow
+          : BitmapDescriptor.hueAzure;
+
       return Marker(
         markerId: MarkerId(event.title), // TODO: Change that to event ID
         position: LatLng(event.location.latitude, event.location.longitude),
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
+        // TODO: Make a custom marker to have logo. If no logo is there then normal marker
+        // TODO: Make custom cool markers for promoted events
+        icon: BitmapDescriptor.defaultMarkerWithHue(markerColor),
         infoWindow: InfoWindow(
           title: event.title,
           snippet: event.description ?? '',

@@ -20,6 +20,7 @@ class EventCreationViewModel extends ChangeNotifier {
   LatLng? location;
   String visibility = 'public';
   String description = '';
+  bool promoted = false;
 
   // Image file (cropped)
   File? imageFile;
@@ -44,8 +45,8 @@ class EventCreationViewModel extends ChangeNotifier {
             toolbarTitle: 'Crop Image',
             toolbarColor: Colors.blueGrey,
             toolbarWidgetColor: Colors.white,
-            initAspectRatio: CropAspectRatioPreset.square,
-            lockAspectRatio: true,
+            initAspectRatio: CropAspectRatioPreset.original,
+            lockAspectRatio: false,
           ),
           IOSUiSettings(
             title: 'Crop Image',
@@ -67,7 +68,6 @@ class EventCreationViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // If no image is chosen, fallback to using initials.
       final image = imageUrl ?? (imageFile != null ? '' : getInitials(title));
       final geoPoint = GeoPoint(location!.latitude, location!.longitude);
       final event = Event(
@@ -77,7 +77,8 @@ class EventCreationViewModel extends ChangeNotifier {
         visibility: visibility,
         description: description.isNotEmpty ? description : null,
         image: image,
-        creatorId: '', // TODO: set the actual creator ID
+        creatorId: '', // TODO: insert actual user UID
+        promoted: promoted,
       );
 
       await _eventService.createEvent(event, imageFile: imageFile);

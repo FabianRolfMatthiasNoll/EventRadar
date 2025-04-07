@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../core/viewmodels/event_creation_viewmodel.dart';
-import 'map_picker_screen.dart';
 import '../widgets/static_map_snippet.dart';
+import 'map_picker_screen.dart';
 
 class EventCreationScreen extends StatefulWidget {
   const EventCreationScreen({Key? key}) : super(key: key);
@@ -70,7 +70,7 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
           key: _formKey,
           child: Column(
             children: [
-              // Row: Circle (image) on the left, Event Name field on the right.
+              // Row: Circle for image selection and Event Name field.
               Row(
                 children: [
                   GestureDetector(
@@ -82,11 +82,13 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                       backgroundColor: Colors.grey[300],
                       backgroundImage: viewModel.imageFile != null
                           ? FileImage(viewModel.imageFile!)
-                          : (viewModel.imageUrl != null && viewModel.imageUrl!.startsWith('http'))
-                          ? NetworkImage(viewModel.imageUrl!) as ImageProvider
+                          : (viewModel.imageUrl != null &&
+                          viewModel.imageUrl!.startsWith('http'))
+                          ? NetworkImage(viewModel.imageUrl!)
                           : null,
                       child: viewModel.imageFile == null &&
-                          (viewModel.imageUrl == null || !viewModel.imageUrl!.startsWith('http'))
+                          (viewModel.imageUrl == null ||
+                              !viewModel.imageUrl!.startsWith('http'))
                           ? Text(
                         "Foto\nhochladen",
                         textAlign: TextAlign.center,
@@ -116,7 +118,7 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                 ],
               ),
               const SizedBox(height: 16.0),
-              // Date & Time picker
+              // Date & Time picker row.
               Row(
                 children: [
                   Expanded(
@@ -131,7 +133,7 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                 ],
               ),
               const SizedBox(height: 16.0),
-              // Map Picker for location
+              // Map picker row.
               Row(
                 children: [
                   Expanded(
@@ -166,7 +168,7 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                 onChanged: (value) => viewModel.description = value,
               ),
               const SizedBox(height: 16.0),
-              // Visibility radio buttons
+              // Visibility selection using radio buttons.
               const Align(
                 alignment: Alignment.centerLeft,
                 child: Text('Sichtbarkeit:'),
@@ -198,7 +200,22 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                 ],
               ),
               const SizedBox(height: 16.0),
-              // Create Event button
+              // Promotion switch (visible if the user is paid, here always visible for demo)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Event promoten'),
+                  Switch(
+                    value: viewModel.promoted,
+                    onChanged: (bool newValue) {
+                      viewModel.promoted = newValue;
+                      setState(() {});
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16.0),
+              // Create event button.
               ElevatedButton(
                 onPressed: () async {
                   if (_formKey.currentState!.validate()) {
