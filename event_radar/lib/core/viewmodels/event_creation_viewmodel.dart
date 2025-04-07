@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:image_cropper/image_cropper.dart';
 import '../models/event.dart';
 import '../services/event_service.dart';
 import '../utils/initials_helper.dart';
@@ -13,44 +14,62 @@ class EventCreationViewModel extends ChangeNotifier {
 
   bool isLoading = false;
 
-  // Formularfelder
+  // Form fields
   String title = '';
   DateTime? dateTime;
   LatLng? location;
   String visibility = 'public';
   String description = '';
 
-  // Bild-Datei
+  // Image file (cropped)
   File? imageFile;
-  // Fallback: Wenn kein Bild hochgeladen wurde werden die Intialien des Namens verwendet
+  // Fallback: if no image is chosen, we use initials from the title.
   String? imageUrl;
 
   bool validate() {
     return title.isNotEmpty && dateTime != null && location != null;
   }
 
-  Future<void> pickImage() async {
-    // TODO: Expiremnt with image_croper to get good image size and quality for these small images
-    final XFile? pickedFile = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 30);
+  /// Picks an image from the gallery and launches the cropper.
+  Future<void> pickAndCropImage() async {
+    final XFile? pickedFile = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 50,
+    );
     if (pickedFile != null) {
-      imageFile = File(pickedFile.path);
-      notifyListeners();
+      CroppedFile? croppedFile = await ImageCropper().cropImage(
+        sourcePath: pickedFile.path,
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'Crop Image',
+            toolbarColor: Colors.blueGrey,
+            toolbarWidgetColor: Colors.white,
+            initAspectRatio: CropAspectRatioPreset.square,
+            lockAspectRatio: true,
+          ),
+          IOSUiSettings(
+            title: 'Crop Image',
+          ),
+        ],
+      );
+      if (croppedFile != null) {
+        imageFile = File(croppedFile.path);
+        notifyListeners();
+      }
     }
   }
 
   Future<String> createEvent() async {
     if (!validate()) {
-      return 'Bitte alle Pflichtfelder ausfüllen.';
+      return 'Bitte alle Felder ausfüllen.';
     }
     isLoading = true;
     notifyListeners();
 
     try {
-      // Wenn kein Bild gewählt wurde, verwende Initialen
-      final image = imageUrl ?? getInitials(title);
-
+      // If no image is chosen, fallback to using initials.
+      final image = imageUrl ?? (imageFile != null ? '' : getInitials(title));
       final geoPoint = GeoPoint(location!.latitude, location!.longitude);
-
       final event = Event(
         title: title,
         date: dateTime!,
@@ -58,7 +77,7 @@ class EventCreationViewModel extends ChangeNotifier {
         visibility: visibility,
         description: description.isNotEmpty ? description : null,
         image: image,
-        creatorId: '', // TODO: Das muss dann die echte UID werden später
+        creatorId: '', // TODO: set the actual creator ID
       );
 
       await _eventService.createEvent(event, imageFile: imageFile);

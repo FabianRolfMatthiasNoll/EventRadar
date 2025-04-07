@@ -70,25 +70,23 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
           key: _formKey,
           child: Column(
             children: [
-              // Row: Circle for image selection and Event Name
+              // Row: Circle (image) on the left, Event Name field on the right.
               Row(
                 children: [
                   GestureDetector(
                     onTap: () async {
-                      await viewModel.pickImage();
+                      await viewModel.pickAndCropImage();
                     },
                     child: CircleAvatar(
                       radius: 40,
                       backgroundColor: Colors.grey[300],
                       backgroundImage: viewModel.imageFile != null
                           ? FileImage(viewModel.imageFile!)
-                          : (viewModel.imageUrl != null &&
-                          viewModel.imageUrl!.startsWith('http'))
-                          ? NetworkImage(viewModel.imageUrl!)
+                          : (viewModel.imageUrl != null && viewModel.imageUrl!.startsWith('http'))
+                          ? NetworkImage(viewModel.imageUrl!) as ImageProvider
                           : null,
                       child: viewModel.imageFile == null &&
-                          (viewModel.imageUrl == null ||
-                              !viewModel.imageUrl!.startsWith('http'))
+                          (viewModel.imageUrl == null || !viewModel.imageUrl!.startsWith('http'))
                           ? Text(
                         "Foto\nhochladen",
                         textAlign: TextAlign.center,
