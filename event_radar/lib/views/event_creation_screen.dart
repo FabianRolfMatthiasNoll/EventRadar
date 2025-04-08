@@ -5,7 +5,7 @@ import '../widgets/static_map_snippet.dart';
 import 'map_picker_screen.dart';
 
 class EventCreationScreen extends StatefulWidget {
-  const EventCreationScreen({Key? key}) : super(key: key);
+  const EventCreationScreen({super.key});
 
   @override
   _EventCreationScreenState createState() => _EventCreationScreenState();

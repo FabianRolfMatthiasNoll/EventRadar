@@ -1,39 +1,38 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import '../core/providers/location_provider.dart';
 import '../core/viewmodels/event_list_viewmodel.dart';
 import '../core/models/event.dart';
 import '../core/utils/initials_helper.dart';
+import '../widgets/main_scaffold.dart';
+import '../core/providers/location_provider.dart';
 
 class EventListScreen extends StatelessWidget {
-  const EventListScreen({Key? key}) : super(key: key);
+  const EventListScreen({super.key});
 
   Future<void> _refreshEvents(BuildContext context) async {
-    // Update global location
     await Provider.of<LocationProvider>(context, listen: false).updateLocation();
-    // Refresh events
     await Provider.of<EventListViewModel>(context, listen: false).refreshEvents();
   }
 
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Events'),
-        automaticallyImplyLeading: false,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () {
-              Navigator.pushNamed(context, '/create-event').then((_) {
-                _refreshEvents(context);
-              });
-            },
-          ),
-        ],
-      ),
+    final userPosition = Provider.of<LocationProvider>(context).currentPosition;
+
+    return MainScaffold(
+      title: 'Events',
+      currentIndex: 0,
+      appBarActions: [
+        IconButton(
+          icon: const Icon(Icons.add),
+          onPressed: () {
+            Navigator.pushNamed(context, '/create-event').then((_) {
+              _refreshEvents(context);
+            });
+          },
+        ),
+      ],
       body: Consumer<EventListViewModel>(
         builder: (context, viewModel, child) {
           if (viewModel.isLoading) {
@@ -45,8 +44,13 @@ class EventListScreen extends StatelessWidget {
               itemCount: viewModel.events.length,
               itemBuilder: (context, index) {
                 final Event event = viewModel.events[index];
-                final userPosition = Provider.of<LocationProvider>(context).currentPosition;
-                final double distance = viewModel.computeDistance(event.location, userPosition);
+                final double distance = userPosition != null
+                    ? (Geolocator.distanceBetween(
+                    userPosition.latitude,
+                    userPosition.longitude,
+                    event.location.latitude,
+                    event.location.longitude) / 1000.0)
+                    : 0.0;
                 final String formattedDate =
                 DateFormat('dd.MM.yyyy – HH:mm').format(event.date);
 
@@ -56,7 +60,8 @@ class EventListScreen extends StatelessWidget {
                         event.image.startsWith('http'))
                         ? NetworkImage(event.image)
                         : null,
-                    child: (event.image.isEmpty || !event.image.startsWith('http'))
+                    child: (event.image.isEmpty ||
+                        !event.image.startsWith('http'))
                         ? Text(getInitials(event.title))
                         : null,
                   ),
@@ -66,7 +71,11 @@ class EventListScreen extends StatelessWidget {
                     style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                   onTap: () {
-                    Navigator.pushNamed(context, '/event-overview', arguments: event);
+                    Navigator.pushNamed(
+                      context,
+                      '/event-overview',
+                      arguments: event,
+                    );
                   },
                 );
               },
@@ -74,24 +83,16 @@ class EventListScreen extends StatelessWidget {
           );
         },
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 0, // Home selected
-        onTap: (index) {
-        if (index == 0) {
-          // Already in Home.
-        } else if (index == 1) {
-          Navigator.pushNamed(context, '/map-events');
-        } else if (index == 2) {
-          // TODO: Navigate to search or profile.
-        }
-        },
-          items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-            BottomNavigationBarItem(icon: Icon(Icons.map), label: 'EventMap'),
-            BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Suchen'),
-          ],
-        // Configure currentIndex and onTap as needed.
-      ),
     );
+  }
+}
+
+// Utility class for distance calculation if needed.
+// You could also use Geolocator.distanceBetween directly.
+class DistanceCalculator {
+  static double calculateDistance(
+      double startLat, double startLng, double endLat, double endLng) {
+    // Returns distance in kilometers.
+    return Geolocator.distanceBetween(startLat, startLng, endLat, endLng) / 1000.0;
   }
 }

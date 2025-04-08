@@ -34,8 +34,8 @@ class EventListViewModel extends ChangeNotifier {
   double computeDistance(GeoPoint eventLocation, Position? userPosition) {
     if (userPosition == null) return 0.0;
     return Geolocator.distanceBetween(
-      userPosition!.latitude,
-      userPosition!.longitude,
+      userPosition.latitude,
+      userPosition.longitude,
       eventLocation.latitude,
       eventLocation.longitude,
     ) / 1000.0;

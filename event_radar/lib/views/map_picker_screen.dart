@@ -3,7 +3,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 
 class MapPickerScreen extends StatefulWidget {
-  const MapPickerScreen({Key? key}) : super(key: key);
+  const MapPickerScreen({super.key});
 
   @override
   _MapPickerScreenState createState() => _MapPickerScreenState();

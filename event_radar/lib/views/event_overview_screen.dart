@@ -12,11 +12,11 @@ class EventOverviewScreen extends StatelessWidget {
   final bool isParticipant;
 
   const EventOverviewScreen({
-    Key? key,
+    super.key,
     required this.event,
     // TODO: Add actual checking when Users exist.
     this.isParticipant = true,
-  }) : super(key: key);
+  });
 
   Future<void> _openGoogleMaps(BuildContext context) async {
     final lat = event.location.latitude;

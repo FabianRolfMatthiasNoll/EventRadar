@@ -11,19 +11,19 @@ class StaticMapSnippet extends StatelessWidget {
   final int zoom;
 
   StaticMapSnippet({
-    Key? key,
+    super.key,
     required this.location,
     this.width = 600,
     this.height = 300,
     this.zoom = 15,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
     final url =
         'https://maps.googleapis.com/maps/api/staticmap?center=${location.latitude},${location.longitude}'
         '&zoom=$zoom'
-        '&size=${width}x${height}'
+        '&size=${width}x$height'
         '&markers=color:red%7Clabel:A%7C${location.latitude},${location.longitude}'
         '&key=$apiKey';
 

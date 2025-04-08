@@ -7,7 +7,7 @@ import '../core/models/event.dart';
 import '../core/utils/initials_helper.dart';
 
 class EventMapScreen extends StatelessWidget {
-  const EventMapScreen({Key? key}) : super(key: key);
+  const EventMapScreen({super.key});
 
   Set<Marker> _createMarkers(List<Event> events, BuildContext context) {
     return events.map((event) {
