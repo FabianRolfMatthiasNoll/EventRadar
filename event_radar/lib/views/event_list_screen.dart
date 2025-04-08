@@ -23,16 +23,14 @@ class EventListScreen extends StatelessWidget {
     return MainScaffold(
       title: 'Events',
       currentIndex: 0,
-      appBarActions: [
-        IconButton(
-          icon: const Icon(Icons.add),
-          onPressed: () {
-            Navigator.pushNamed(context, '/create-event').then((_) {
-              _refreshEvents(context);
-            });
-          },
-        ),
-      ],
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.pushNamed(context, '/create-event').then((_) {
+            _refreshEvents(context);
+          });
+        },
+        child: const Icon(Icons.add),
+      ),
       showBackButton: false,
       body: Consumer<EventListViewModel>(
         builder: (context, viewModel, child) {
@@ -69,7 +67,8 @@ class EventListScreen extends StatelessWidget {
                   title: Text(event.title),
                   subtitle: Text(
                     "${event.participantCount} Teilnehmer • ${distance.toStringAsFixed(1)} km • $formattedDate",
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    style:
+                    const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                   onTap: () {
                     Navigator.pushNamed(
@@ -85,15 +84,5 @@ class EventListScreen extends StatelessWidget {
         },
       ),
     );
-  }
-}
-
-// Utility class for distance calculation if needed.
-// You could also use Geolocator.distanceBetween directly.
-class DistanceCalculator {
-  static double calculateDistance(
-      double startLat, double startLng, double endLat, double endLng) {
-    // Returns distance in kilometers.
-    return Geolocator.distanceBetween(startLat, startLng, endLat, endLng) / 1000.0;
   }
 }

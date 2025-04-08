@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 class MainScaffold extends StatelessWidget {
   final String title;
   final Widget body;
-  // If currentIndex is null, no button is highlighted (and the bar is hidden)
   final int? currentIndex;
   final bool showBackButton;
+  final Widget? floatingActionButton;
   final void Function(int)? onBottomNavTap;
   final List<Widget>? appBarActions;
   final bool showBottomNavigation;
@@ -16,6 +16,7 @@ class MainScaffold extends StatelessWidget {
     required this.body,
     this.currentIndex,
     this.showBackButton = true,
+    this.floatingActionButton,
     this.onBottomNavTap,
     this.appBarActions,
     this.showBottomNavigation = true,
@@ -40,6 +41,7 @@ class MainScaffold extends StatelessWidget {
         actions: appBarActions,
       ),
       body: body,
+      floatingActionButton: floatingActionButton,
       // Only display the bottom navigation bar if showBottomNavigation is true
       bottomNavigationBar: showBottomNavigation
           ? BottomNavigationBar(
