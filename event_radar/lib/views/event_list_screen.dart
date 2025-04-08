@@ -66,7 +66,7 @@ class EventListScreen extends StatelessWidget {
                     style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                   onTap: () {
-                    // TODO: Navigate to event details.
+                    Navigator.pushNamed(context, '/event-overview', arguments: event);
                   },
                 );
               },

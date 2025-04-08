@@ -45,13 +45,13 @@ class EventMapScreen extends StatelessWidget {
                     : null,
               ),
               title: Text(event.title),
-              subtitle: Text(event.description ?? 'No description'),
+              subtitle: Text(event.description ?? 'Keine Beschreibung vorhanden'),
             ),
             ElevatedButton(
               onPressed: () {
-                // TODO: Implement join event functionality
+                Navigator.pushNamed(context, '/event-overview', arguments: event);
               },
-              child: const Text("Join Event"),
+              child: const Text("Zum Event"),
             ),
           ],
         ),
