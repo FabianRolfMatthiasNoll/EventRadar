@@ -37,7 +37,7 @@ class EventOverviewScreen extends StatelessWidget {
 
     return MainScaffold(
       title: 'Event Details',
-      currentIndex: 0,
+      currentIndex: null,
       appBarActions: [
         IconButton(
           icon: const Icon(Icons.settings),

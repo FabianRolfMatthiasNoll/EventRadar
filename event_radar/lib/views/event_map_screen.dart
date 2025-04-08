@@ -75,6 +75,7 @@ class EventMapScreen extends StatelessWidget {
     return MainScaffold(
       title: 'Event Map',
       showBackButton: false, // Use false on bottom navigation screens.
+      currentIndex: 1,
       body: Consumer<EventMapViewModel>(
         builder: (context, viewModel, child) {
           if (viewModel.isLoading) {
