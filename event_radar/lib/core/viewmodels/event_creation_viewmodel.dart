@@ -46,7 +46,9 @@ class EventCreationViewModel extends ChangeNotifier {
             toolbarColor: Colors.blueGrey,
             toolbarWidgetColor: Colors.white,
             initAspectRatio: CropAspectRatioPreset.square,
+            hideBottomControls: true,
             lockAspectRatio: true,
+            aspectRatioPresets: [CropAspectRatioPreset.square]
           ),
           IOSUiSettings(
             title: 'Crop Image',
