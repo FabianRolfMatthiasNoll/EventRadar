@@ -33,6 +33,7 @@ class EventListScreen extends StatelessWidget {
           },
         ),
       ],
+      showBackButton: false,
       body: Consumer<EventListViewModel>(
         builder: (context, viewModel, child) {
           if (viewModel.isLoading) {

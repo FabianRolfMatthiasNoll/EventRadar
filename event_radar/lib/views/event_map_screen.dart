@@ -5,6 +5,7 @@ import '../core/providers/location_provider.dart';
 import '../core/viewmodels/event_map_viewmodel.dart';
 import '../core/models/event.dart';
 import '../core/utils/initials_helper.dart';
+import '../widgets/main_scaffold.dart';
 
 class EventMapScreen extends StatelessWidget {
   const EventMapScreen({super.key});
@@ -17,7 +18,8 @@ class EventMapScreen extends StatelessWidget {
         // TODO: Make a custom marker to have logo. If no logo is there then normal marker
         // TODO: Make custom cool markers for promoted events
         icon: BitmapDescriptor.defaultMarkerWithHue(
-            event.promoted ? BitmapDescriptor.hueYellow : BitmapDescriptor.hueAzure),
+          event.promoted ? BitmapDescriptor.hueYellow : BitmapDescriptor.hueAzure,
+        ),
         infoWindow: InfoWindow(
           title: event.title,
           snippet: event.description ?? '',
@@ -61,32 +63,18 @@ class EventMapScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Get the global user location from LocationProvider.
     final userPosition = Provider.of<LocationProvider>(context).currentPosition;
 
     // If the location isn’t yet available, show a loader.
     if (userPosition == null) {
-      return Scaffold(
-        appBar: AppBar(
-          title: const Text('Event Map'),
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () => Navigator.pop(context),
-          ),
-        ),
-        body: const Center(child: CircularProgressIndicator()),
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
       );
     }
 
-    // Use the EventMapViewModel to get event data.
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Event Map'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
+    return MainScaffold(
+      title: 'Event Map',
+      showBackButton: false, // Use false on bottom navigation screens.
       body: Consumer<EventMapViewModel>(
         builder: (context, viewModel, child) {
           if (viewModel.isLoading) {
@@ -100,7 +88,6 @@ class EventMapScreen extends StatelessWidget {
             markers: _createMarkers(viewModel.events, context),
             myLocationEnabled: true,
             zoomControlsEnabled: true,
-            onMapCreated: (controller) {},
           );
         },
       ),
