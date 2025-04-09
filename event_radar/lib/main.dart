@@ -37,9 +37,6 @@ Future<void> main() async {
         ChangeNotifierProvider<EventListViewModel>(
           create: (_) => EventListViewModel(),
         ),
-        ChangeNotifierProvider<EventCreationViewModel>(
-          create: (_) => EventCreationViewModel(),
-        ),
         ChangeNotifierProvider<EventMapViewModel>(
           create: (_) => EventMapViewModel(),
         ),
@@ -59,7 +56,10 @@ class MyApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/': (context) => const EventListScreen(),
-        '/create-event': (context) => const EventCreationScreen(),
+        '/create-event': (context) => ChangeNotifierProvider(
+          create: (_) => EventCreationViewModel(),
+          child: const EventCreationScreen(),
+        ),
         '/map-events': (context) => const EventMapScreen(),
         '/event-overview': (context) {
           final event = ModalRoute.of(context)?.settings.arguments as Event;

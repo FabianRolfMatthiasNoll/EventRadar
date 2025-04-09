@@ -75,22 +75,27 @@ class EventOverviewScreen extends StatelessWidget {
             const SizedBox(height: 16),
             // Description section (if available).
             if (event.description != null && event.description!.isNotEmpty)
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(Icons.description, size: 20),
-                  const SizedBox(width: 8),
-                  Expanded(child: Text(event.description!)),
-                ],
+              ListTile(
+                leading: const Icon(Icons.description),
+                title: Text(event.description!),
               ),
-            const SizedBox(height: 16),
-            // Date and time row.
-            Row(
-              children: [
-                const Icon(Icons.calendar_today, size: 20),
-                const SizedBox(width: 8),
-                Text(formattedDate),
-              ],
+            ListTile(
+              leading: const Icon(Icons.calendar_today),
+              title: Text(formattedDate),
+            ),
+            // Participants tile.
+            ListTile(
+              leading: const Icon(Icons.people),
+              title: Text("${event.participantCount} Teilnehmer")
+            ),
+            // Announcements tile.
+            ListTile(
+              leading: const Icon(Icons.announcement),
+              title: const Text("Ankündigungen"),
+              trailing: const Icon(Icons.arrow_forward_ios),
+              onTap: () {
+                // TODO: Navigate to the event’s chat channel for announcements.
+              },
             ),
             const SizedBox(height: 16),
             // Location snippet.
@@ -110,25 +115,6 @@ class EventOverviewScreen extends StatelessWidget {
                   zoom: 15,
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            // Participants row.
-            Row(
-              children: [
-                const Icon(Icons.people, size: 20),
-                const SizedBox(width: 8),
-                Text("${event.participantCount} Teilnehmer"),
-              ],
-            ),
-            const SizedBox(height: 16),
-            // Announcements tile.
-            ListTile(
-              leading: const Icon(Icons.announcement),
-              title: const Text("Ankündigungen"),
-              trailing: const Icon(Icons.arrow_forward_ios),
-              onTap: () {
-                // TODO: Navigate to the event’s chat channel for announcements.
-              },
             ),
             const SizedBox(height: 16),
             // Join/Leave button.
