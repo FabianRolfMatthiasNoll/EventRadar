@@ -17,7 +17,7 @@ class ProfileScreen extends StatelessWidget {
         title: 'Profil',
         currentIndex: 3,
         // body: ProfileSettingsScreen(),
-        body: ResetPasswordScreen(),
+        body: RegisterScreen(),
     );
   }
 }
