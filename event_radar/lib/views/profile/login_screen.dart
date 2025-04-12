@@ -62,10 +62,12 @@ class _LoginScreenState extends State<LoginScreen> {
                 prefixIcon: Icon(Icons.person),
               ),
               validator: _validateEmail,
+              textInputAction: TextInputAction.next,
             ),
             PasswordFormField(
               controller: _passwordController,
               validator: _validatePassword,
+              textInputAction: TextInputAction.next,
             ),
             Row(
               children: [

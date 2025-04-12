@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'login_screen.dart';
+import '../../widgets/password_form_field.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -67,29 +67,33 @@ class _RegisterScreenState extends State<RegisterScreen> {
           children: [
             TextFormField(
               controller: _emailController,
+              validator: _validateEmail,
+              textInputAction: TextInputAction.next,
               decoration: InputDecoration(
                 border: OutlineInputBorder(),
                 labelText: 'Email',
                 prefixIcon: Icon(Icons.email),
               ),
-              validator: _validateEmail,
             ),
             TextFormField(
               controller: _nameController,
+              textInputAction: TextInputAction.next,
+              validator: _validateName,
               decoration: InputDecoration(
                 border: OutlineInputBorder(),
                 labelText: 'Name',
                 prefixIcon: Icon(Icons.person),
               ),
-              validator: _validateName,
             ),
             PasswordFormField(
               controller: _password1Controller,
               validator: _validatePassword,
+              textInputAction: TextInputAction.next,
             ),
             PasswordFormField(
               controller: _password2Controller,
               validator: _validatePassword,
+              textInputAction: TextInputAction.next,
             ),
             Row(
               children: [
@@ -102,11 +106,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ],
             ),
             Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Expanded(child: SizedBox()),
                 TextButton(
                   onPressed: _gotoLogin,
-                  child: Text('Log in'),
+                  child: Text('Einloggen'),
                 ),
               ],
             ),

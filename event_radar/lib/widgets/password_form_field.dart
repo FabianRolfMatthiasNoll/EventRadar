@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 class PasswordFormField extends StatefulWidget {
   final TextEditingController? controller;
   final String? Function(String?)? validator;
+  final TextInputAction? textInputAction;
 
   const PasswordFormField({
     super.key,
     this.controller,
     this.validator,
+    this.textInputAction,
   });
 
   @override
@@ -29,6 +31,10 @@ class _PasswordFormFieldState extends State<PasswordFormField> {
   Widget build(BuildContext context) {
     return TextFormField(
       controller: widget.controller,
+      validator: widget.validator,
+      textInputAction: widget.textInputAction,
+      obscureText: _obscurePassword,
+      onFieldSubmitted: (_) => FocusScope.of(context).nextFocus(),
       decoration: InputDecoration(
         border: OutlineInputBorder(),
         labelText: 'Passwort',
@@ -40,8 +46,6 @@ class _PasswordFormFieldState extends State<PasswordFormField> {
           onPressed: _togglePasswordVisibility,
         ),
       ),
-      obscureText: _obscurePassword,
-      validator: widget.validator,
     );
   }
 }

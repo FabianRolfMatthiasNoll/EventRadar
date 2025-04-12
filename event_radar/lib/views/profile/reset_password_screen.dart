@@ -27,7 +27,7 @@ class _ResetPasswordScreenState extends State<StatefulWidget> {
     return null;
   }
 
-  void goBack() {
+  void _goBack() {
     // TODO go back
   }
 
@@ -57,6 +57,15 @@ class _ResetPasswordScreenState extends State<StatefulWidget> {
                       onPressed: _submit,
                       child: Text('Passwort zurücksetzen')
                   ),
+                ),
+              ],
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                TextButton(
+                  onPressed: _goBack,
+                  child: Text('zurück'),
                 ),
               ],
             ),
