@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../core/viewmodels/event_creation_viewmodel.dart';
 import '../widgets/static_map_snippet.dart';
 import 'map_picker_screen.dart';
+import '../widgets/main_scaffold.dart';
 
 class EventCreationScreen extends StatefulWidget {
   const EventCreationScreen({Key? key}) : super(key: key);
@@ -19,14 +20,12 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
   String formatDate(DateTime date) => DateFormat('dd.MM.yyyy').format(date);
   String formatTime(DateTime date) => DateFormat('HH:mm').format(date);
 
-  // A helper method for creating a date/time row.
-  // The row always reserves a fixed width for the label and for the remove button.
   Widget _buildDateTimeRow({
     required String label,
     required DateTime dateTime,
     required VoidCallback onSelectDate,
     required VoidCallback onSelectTime,
-    Widget? removeWidget, // if provided, it appears in a fixed width container.
+    Widget? removeWidget,
   }) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -178,14 +177,9 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
     // Calculate the available map width based on screen size and padding.
     final double mapWidth = MediaQuery.of(context).size.width - 32; // 16 px padding each side
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Event Erstellung'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
+    return MainScaffold(
+      title: 'Event Erstellung',
+      showBottomNavigation: false,
       body: viewModel.isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
@@ -282,7 +276,7 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                 ),
               ),
               const SizedBox(height: 16.0),
-              // Location picker: remove dedicated button by making the map area tappable.
+              // Location picker
               InkWell(
                 onTap: () => _pickLocation(viewModel),
                 child: Container(
@@ -308,7 +302,7 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                   ),
                 ),
               ),
-              // Description.
+              // Description field.
               TextFormField(
                 decoration: const InputDecoration(
                   labelText: 'Beschreibung (optional)',
