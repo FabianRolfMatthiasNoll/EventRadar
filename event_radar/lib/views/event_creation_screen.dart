@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import '../core/viewmodels/event_creation_viewmodel.dart';
 import '../widgets/static_map_snippet.dart';
 import 'map_picker_screen.dart';
 
 class EventCreationScreen extends StatefulWidget {
-  const EventCreationScreen({super.key});
+  const EventCreationScreen({Key? key}) : super(key: key);
 
   @override
   _EventCreationScreenState createState() => _EventCreationScreenState();
@@ -14,29 +15,145 @@ class EventCreationScreen extends StatefulWidget {
 class _EventCreationScreenState extends State<EventCreationScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  Future<void> _selectDateTime(EventCreationViewModel viewModel) async {
+  // Formatters.
+  String formatDate(DateTime date) => DateFormat('dd.MM.yyyy').format(date);
+  String formatTime(DateTime date) => DateFormat('HH:mm').format(date);
+
+  // A helper method for creating a date/time row.
+  // The row always reserves a fixed width for the label and for the remove button.
+  Widget _buildDateTimeRow({
+    required String label,
+    required DateTime dateTime,
+    required VoidCallback onSelectDate,
+    required VoidCallback onSelectTime,
+    Widget? removeWidget, // if provided, it appears in a fixed width container.
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        // Fixed width label.
+        SizedBox(
+          width: 60,
+          child: Text(
+            label,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ),
+        // Date picker part.
+        Expanded(
+          child: InkWell(
+            onTap: onSelectDate,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8.0),
+              child: Row(
+                children: [
+                  const Icon(Icons.date_range),
+                  const SizedBox(width: 4.0),
+                  Text(formatDate(dateTime)),
+                ],
+              ),
+            ),
+          ),
+        ),
+        // Time picker part.
+        Expanded(
+          child: InkWell(
+            onTap: onSelectTime,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8.0),
+              child: Row(
+                children: [
+                  const Icon(Icons.access_time),
+                  const SizedBox(width: 4.0),
+                  Text(formatTime(dateTime)),
+                ],
+              ),
+            ),
+          ),
+        ),
+        // Reserve a fixed width space for the remove icon (if not provided, leave empty for proper alignment)
+        SizedBox(
+          width: 40,
+          child: removeWidget ?? const SizedBox.shrink(),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _selectStartDate(EventCreationViewModel viewModel) async {
+    DateTime initial = viewModel.dateTime ?? DateTime.now();
     DateTime now = DateTime.now();
-    DateTime? date = await showDatePicker(
+    final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: now,
+      initialDate: initial,
       firstDate: now,
       lastDate: DateTime(now.year + 5),
     );
-    if (date != null) {
-      TimeOfDay? time = await showTimePicker(
-        context: context,
-        initialTime: TimeOfDay.now(),
+    if (picked != null) {
+      viewModel.dateTime = DateTime(
+        picked.year,
+        picked.month,
+        picked.day,
+        viewModel.dateTime?.hour ?? initial.hour,
+        viewModel.dateTime?.minute ?? initial.minute,
       );
-      if (time != null) {
-        viewModel.dateTime = DateTime(
-          date.year,
-          date.month,
-          date.day,
-          time.hour,
-          time.minute,
-        );
-        setState(() {});
-      }
+      setState(() {});
+    }
+  }
+
+  Future<void> _selectStartTime(EventCreationViewModel viewModel) async {
+    DateTime initial = viewModel.dateTime ?? DateTime.now();
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(initial),
+    );
+    if (picked != null) {
+      viewModel.dateTime = DateTime(
+        initial.year,
+        initial.month,
+        initial.day,
+        picked.hour,
+        picked.minute,
+      );
+      setState(() {});
+    }
+  }
+
+  Future<void> _selectEndDate(EventCreationViewModel viewModel) async {
+    DateTime initial = viewModel.endDateTime ?? (viewModel.dateTime ?? DateTime.now());
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: viewModel.dateTime ?? DateTime.now(),
+      lastDate: DateTime(DateTime.now().year + 5),
+    );
+    if (picked != null) {
+      viewModel.endDateTime = DateTime(
+        picked.year,
+        picked.month,
+        picked.day,
+        viewModel.endDateTime?.hour ?? initial.hour,
+        viewModel.endDateTime?.minute ?? initial.minute,
+      );
+      setState(() {});
+    }
+  }
+
+  Future<void> _selectEndTime(EventCreationViewModel viewModel) async {
+    DateTime initial = viewModel.endDateTime ?? (viewModel.dateTime ?? DateTime.now());
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(initial),
+    );
+    if (picked != null) {
+      viewModel.endDateTime = DateTime(
+        initial.year,
+        initial.month,
+        initial.day,
+        picked.hour,
+        picked.minute,
+      );
+      setState(() {});
     }
   }
 
@@ -54,6 +171,13 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
   @override
   Widget build(BuildContext context) {
     final viewModel = Provider.of<EventCreationViewModel>(context);
+
+    // Prepopulate with current time if not already set.
+    viewModel.dateTime ??= DateTime.now();
+
+    // Calculate the available map width based on screen size and padding.
+    final double mapWidth = MediaQuery.of(context).size.width - 32; // 16 px padding each side
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Event Erstellung'),
@@ -70,7 +194,7 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
           key: _formKey,
           child: Column(
             children: [
-              // Row: Circle for image selection and Event Name field.
+              // Image picker and event name.
               Row(
                 children: [
                   GestureDetector(
@@ -84,7 +208,7 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                           ? FileImage(viewModel.imageFile!)
                           : (viewModel.imageUrl != null &&
                           viewModel.imageUrl!.startsWith('http'))
-                          ? NetworkImage(viewModel.imageUrl!)
+                          ? NetworkImage(viewModel.imageUrl!) as ImageProvider
                           : null,
                       child: viewModel.imageFile == null &&
                           (viewModel.imageUrl == null ||
@@ -118,48 +242,73 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                 ],
               ),
               const SizedBox(height: 16.0),
-              // Date & Time picker row.
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(viewModel.dateTime == null
-                        ? 'Kein Datum ausgewählt'
-                        : 'Datum: ${viewModel.dateTime!.toLocal().toString().substring(0, 16)}'),
-                  ),
-                  ElevatedButton(
-                    onPressed: () => _selectDateTime(viewModel),
-                    child: const Text('Datum wählen'),
-                  ),
-                ],
+              // Start date and time row.
+              _buildDateTimeRow(
+                label: "Start:",
+                dateTime: viewModel.dateTime!,
+                onSelectDate: () => _selectStartDate(viewModel),
+                onSelectTime: () => _selectStartTime(viewModel),
+                removeWidget: null, // No remove option for start time.
               ),
               const SizedBox(height: 16.0),
-              // Map picker row.
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(viewModel.location == null
-                        ? 'Kein Ort ausgewählt'
-                        : 'Ort: Lat ${viewModel.location!.latitude}, Lng ${viewModel.location!.longitude}'),
-                  ),
-                  ElevatedButton(
-                    onPressed: () => _pickLocation(viewModel),
-                    child: const Text('Ort wählen'),
-                  ),
-                ],
+              // End date and time row.
+              viewModel.endDateTime != null
+                  ? _buildDateTimeRow(
+                label: "Ende:",
+                dateTime: viewModel.endDateTime!,
+                onSelectDate: () => _selectEndDate(viewModel),
+                onSelectTime: () => _selectEndTime(viewModel),
+                removeWidget: IconButton(
+                  icon: const Icon(Icons.remove_circle, color: Colors.red),
+                  tooltip: "Endzeit entfernen",
+                  onPressed: () {
+                    setState(() {
+                      viewModel.endDateTime = null;
+                    });
+                  },
+                ),
+              )
+                  : Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  icon: const Icon(Icons.add),
+                  label: const Text('Endzeit hinzufügen'),
+                  onPressed: () {
+                    setState(() {
+                      viewModel.endDateTime =
+                          viewModel.dateTime!.add(const Duration(hours: 1));
+                    });
+                  },
+                ),
               ),
               const SizedBox(height: 16.0),
-              // Static map snippet of selected location
-              if (viewModel.location != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16.0),
-                  child: StaticMapSnippet(
+              // Location picker: remove dedicated button by making the map area tappable.
+              InkWell(
+                onTap: () => _pickLocation(viewModel),
+                child: Container(
+                  width: double.infinity,
+                  height: 150,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  clipBehavior: Clip.hardEdge,
+                  child: viewModel.location != null
+                      ? StaticMapSnippet(
                     location: viewModel.location!,
-                    width: 600,
-                    height: 200,
+                    width: mapWidth.toInt(),
+                    height: 150,
                     zoom: 15,
+                  )
+                      : const Center(
+                    child: Text(
+                      'Tippe hier um einen Ort auszuwählen',
+                      style: TextStyle(fontSize: 16, color: Colors.grey),
+                    ),
                   ),
                 ),
-              // Description
+              ),
+              // Description.
               TextFormField(
                 decoration: const InputDecoration(
                   labelText: 'Beschreibung (optional)',
@@ -168,7 +317,7 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                 onChanged: (value) => viewModel.description = value,
               ),
               const SizedBox(height: 16.0),
-              // Visibility selection using radio buttons.
+              // Visibility selection.
               const Align(
                 alignment: Alignment.centerLeft,
                 child: Text('Sichtbarkeit:'),
@@ -199,8 +348,7 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 16.0),
-              // Promotion switch (visible if the user is paid, here always visible for demo)
+              // Promotion switch.
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
