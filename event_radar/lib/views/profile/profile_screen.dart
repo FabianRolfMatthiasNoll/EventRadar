@@ -14,7 +14,8 @@ class ProfileScreen extends StatelessWidget {
     return MainScaffold(
         title: 'Profil',
         currentIndex: 3,
-        body: ProfileSettingsScreen(),
+        // body: ProfileSettingsScreen(),
+        body: LoginScreen(),
     );
   }
 }
