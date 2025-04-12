@@ -1,4 +1,5 @@
 import 'package:event_radar/views/profile/profile_settings_screen.dart';
+import 'package:event_radar/views/profile/register_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -15,7 +16,7 @@ class ProfileScreen extends StatelessWidget {
         title: 'Profil',
         currentIndex: 3,
         // body: ProfileSettingsScreen(),
-        body: LoginScreen(),
+        body: RegisterScreen(),
     );
   }
 }
