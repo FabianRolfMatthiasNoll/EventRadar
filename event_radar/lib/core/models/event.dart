@@ -3,7 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class Event {
   String? id; // Unique Firestore document ID, unknown until document creation
   final String title;
-  final DateTime date;
+  final DateTime startDate;
+  final DateTime? endDate;
   final GeoPoint location;
   final String visibility;
   final String? description;
@@ -15,7 +16,8 @@ class Event {
   Event({
     this.id,
     required this.title,
-    required this.date,
+    required this.startDate,
+    this.endDate,
     required this.location,
     required this.visibility,
     this.description,
@@ -26,9 +28,9 @@ class Event {
   });
 
   Map<String, dynamic> toMap() {
-    return {
+    final map = {
       'title': title,
-      'date': date,
+      'date': startDate, // Named Date because if no Enddate is selected this represents the date of the event.
       'location': location,
       'visibility': visibility,
       'description': description,
@@ -38,6 +40,10 @@ class Event {
       'promoted': promoted,
       'participantCount': participantCount,
     };
+    if (endDate != null) {
+      map['endDate'] = endDate;
+    }
+    return map;
   }
 
   factory Event.fromDocument(DocumentSnapshot doc) {
@@ -45,7 +51,8 @@ class Event {
     return Event(
       id: doc.id,
       title: data['title'] ?? '',
-      date: data['date']?.toDate() ?? DateTime.now(),
+      startDate: data['date']?.toDate() ?? DateTime.now(),
+      endDate: data['endDate'] != null ? (data['endDate'] as Timestamp).toDate() : null,
       location: data['location'],
       visibility: data['visibility'] ?? 'public',
       description: data['description'],

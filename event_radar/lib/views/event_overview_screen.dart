@@ -12,11 +12,10 @@ class EventOverviewScreen extends StatelessWidget {
   final bool isParticipant;
 
   const EventOverviewScreen({
-    super.key,
+    Key? key,
     required this.event,
-    // TODO: Add actual checking when Users exist.
     this.isParticipant = true,
-  });
+  }) : super(key: key);
 
   Future<void> _openGoogleMaps(BuildContext context) async {
     final lat = event.location.latitude;
@@ -31,10 +30,12 @@ class EventOverviewScreen extends StatelessWidget {
     }
   }
 
+  String formatDateTime(DateTime dt) {
+    return DateFormat('dd.MM.yyyy – HH:mm').format(dt);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final String formattedDate = DateFormat('dd.MM.yyyy – HH:mm').format(event.date);
-
     return MainScaffold(
       title: 'Event Details',
       currentIndex: null,
@@ -42,7 +43,7 @@ class EventOverviewScreen extends StatelessWidget {
         IconButton(
           icon: const Icon(Icons.settings),
           onPressed: () {
-            // TODO: Navigate to settings page for the event
+            // TODO: Navigate to event settings.
           },
         ),
       ],
@@ -51,7 +52,7 @@ class EventOverviewScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top row: event image and event name.
+            // Top row: event image and name.
             Row(
               children: [
                 CircleAvatar(
@@ -73,28 +74,38 @@ class EventOverviewScreen extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 16),
-            // Description section (if available).
+            // Description.
             if (event.description != null && event.description!.isNotEmpty)
               ListTile(
                 leading: const Icon(Icons.description),
                 title: Text(event.description!),
               ),
+            // Date/time display: if an end date exists, show start and end on separate rows.
             ListTile(
               leading: const Icon(Icons.calendar_today),
-              title: Text(formattedDate),
+              title: event.endDate != null
+                  ? Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("Start: ${formatDateTime(event.startDate)}"),
+                  const SizedBox(height: 4),
+                  Text("Ende: ${formatDateTime(event.endDate!)}"),
+                ],
+              )
+                  : Text(formatDateTime(event.startDate)),
             ),
-            // Participants tile.
+            // Participants.
             ListTile(
               leading: const Icon(Icons.people),
-              title: Text("${event.participantCount} Teilnehmer")
+              title: Text("${event.participantCount} Teilnehmer"),
             ),
-            // Announcements tile.
+            // Announcements.
             ListTile(
               leading: const Icon(Icons.announcement),
               title: const Text("Ankündigungen"),
               trailing: const Icon(Icons.arrow_forward_ios),
               onTap: () {
-                // TODO: Navigate to the event’s chat channel for announcements.
+                // TODO: Navigate to announcements.
               },
             ),
             const SizedBox(height: 16),
@@ -123,7 +134,7 @@ class EventOverviewScreen extends StatelessWidget {
                 onPressed: () {
                   // TODO: Implement join/leave logic.
                 },
-                child: Text(isParticipant ? "Leave Group" : "Join Event"),
+                child: Text(isParticipant ? "Event verlassen" : "Event beitreten"),
               ),
             ),
           ],
