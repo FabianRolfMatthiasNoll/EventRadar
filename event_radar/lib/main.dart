@@ -1,4 +1,7 @@
+import 'package:event_radar/core/viewmodels/profile_settings_viewmodel.dart';
 import 'package:event_radar/views/event_overview_screen.dart';
+import 'package:event_radar/views/profile/login_screen.dart';
+import 'package:event_radar/views/profile/profile_screen.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -40,6 +43,9 @@ Future<void> main() async {
         ChangeNotifierProvider<EventMapViewModel>(
           create: (_) => EventMapViewModel(),
         ),
+        ChangeNotifierProvider<ProfileSettingsViewModel>(
+            create: (_) => ProfileSettingsViewModel()
+        ),
       ],
       child: const MyApp(),
     ),
@@ -65,6 +71,7 @@ class MyApp extends StatelessWidget {
           final event = ModalRoute.of(context)?.settings.arguments as Event;
           return EventOverviewScreen(event: event);
         },
+        '/profile-settings': (context) => const ProfileScreen(),
       },
       theme: ThemeData(
         primarySwatch: Colors.blue,
