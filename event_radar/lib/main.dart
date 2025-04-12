@@ -1,11 +1,11 @@
+import 'package:event_radar/core/services/event_service.dart';
 import 'package:event_radar/core/viewmodels/profile_settings_viewmodel.dart';
 import 'package:event_radar/views/event_overview_screen.dart';
-import 'package:event_radar/views/profile/login_screen.dart';
 import 'package:event_radar/views/profile/profile_screen.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'core/models/event.dart';
+import 'package:go_router/go_router.dart';
 import 'firebase_options.dart';
 import 'views/event_list_screen.dart';
 import 'views/event_creation_screen.dart';
@@ -47,35 +47,69 @@ Future<void> main() async {
             create: (_) => ProfileSettingsViewModel()
         ),
       ],
-      child: const MyApp(),
+      child: MyApp(),
     ),
   );
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  MyApp({super.key});
+
+  final _router = GoRouter(
+    initialLocation: '/event-list',
+    routes: [
+      GoRoute(
+        path: '/',
+        redirect: (context, state) => '/event-list'
+      ),
+      GoRoute(
+        path: '/event-list',
+        builder: (context, state) => EventListScreen(),
+        routes: <RouteBase>[
+          GoRoute(
+            path: 'create-event',
+            builder: (context, state) {
+              return ChangeNotifierProvider(
+                create: (_) => EventCreationViewModel(),
+                child: const EventCreationScreen(),
+              );
+            }
+          ),
+          GoRoute(
+            path: '/event-overview/:index',
+            builder: (context, state) {
+              // TODO create own viewModel for EventOverviewScreen
+              final id = int.parse(state.pathParameters['index']!);
+              return Consumer<EventListViewModel>(
+                builder: (context, viewModel, child) {
+                  return EventOverviewScreen(
+                    event: viewModel.events[id],
+                  );
+                },
+              );
+            }
+          )
+        ]
+      ),
+      GoRoute(
+        path: '/map-events',
+        builder: (context, state) => EventMapScreen()
+      ),
+      GoRoute(
+        path: '/map-events',
+        builder: (context, state) => EventMapScreen()
+      ),
+      GoRoute(
+        path: '/profile-settings',
+        builder: (context, state) => ProfileScreen()
+      )
+    ]
+  );
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Event Radar',
-      initialRoute: '/',
-      routes: {
-        '/': (context) => const EventListScreen(),
-        '/create-event': (context) => ChangeNotifierProvider(
-          create: (_) => EventCreationViewModel(),
-          child: const EventCreationScreen(),
-        ),
-        '/map-events': (context) => const EventMapScreen(),
-        '/event-overview': (context) {
-          final event = ModalRoute.of(context)?.settings.arguments as Event;
-          return EventOverviewScreen(event: event);
-        },
-        '/profile-settings': (context) => const ProfileScreen(),
-      },
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
+    return MaterialApp.router(
+      routerConfig: _router,
     );
   }
 }

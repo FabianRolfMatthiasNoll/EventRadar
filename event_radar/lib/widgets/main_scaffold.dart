@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class MainScaffold extends StatelessWidget {
   final String title;
@@ -54,16 +55,13 @@ class MainScaffold extends StatelessWidget {
                 (index) {
               // Global navigation handling.
               if (index == 0) {
-                Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+                context.go('/');
               } else if (index == 1) {
-                Navigator.pushNamedAndRemoveUntil(
-                    context, '/map-events', (route) => false);
+                context.go('/map-events');
               } else if (index == 2) {
-                Navigator.pushNamedAndRemoveUntil(
-                    context, '/search', (route) => false);
+                context.go('/search');
               } else if (index == 3) {
-                Navigator.pushNamedAndRemoveUntil(
-                    context, '/profile-settings', (route) => false);
+                context.go('/profile-settings');
               }
             },
         items: const [

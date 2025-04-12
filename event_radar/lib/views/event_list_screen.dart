@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../core/viewmodels/event_list_viewmodel.dart';
@@ -25,9 +26,7 @@ class EventListScreen extends StatelessWidget {
       currentIndex: 0,
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          Navigator.pushNamed(context, '/create-event').then((_) {
-            _refreshEvents(context);
-          });
+          context.go('/event-list/create-event');
         },
         child: const Icon(Icons.add),
       ),
@@ -71,11 +70,7 @@ class EventListScreen extends StatelessWidget {
                     const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                   onTap: () {
-                    Navigator.pushNamed(
-                      context,
-                      '/event-overview',
-                      arguments: event,
-                    );
+                    context.go('/event-list/event-overview/$index');
                   },
                 );
               },

@@ -64,4 +64,9 @@ class EventService {
     QuerySnapshot snapshot = await _firestore.collection('events').get();
     return snapshot.docs.map((doc) => Event.fromDocument(doc)).toList();
   }
+
+  Future<Event> getEvent(String id) async {
+    var doc = await _firestore.collection('events').doc(id).get();
+    return Event.fromDocument(doc);
+  }
 }
