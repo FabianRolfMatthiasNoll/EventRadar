@@ -16,7 +16,8 @@ class EventCreationViewModel extends ChangeNotifier {
 
   // Form fields
   String title = '';
-  DateTime? dateTime;
+  DateTime? dateTime; // Start time or time
+  DateTime? endDateTime;
   LatLng? location;
   String visibility = 'public';
   String description = '';
@@ -31,7 +32,6 @@ class EventCreationViewModel extends ChangeNotifier {
     return title.isNotEmpty && dateTime != null && location != null;
   }
 
-  /// Picks an image from the gallery and launches the cropper.
   Future<void> pickAndCropImage() async {
     final XFile? pickedFile = await _picker.pickImage(
       source: ImageSource.gallery,
@@ -48,10 +48,7 @@ class EventCreationViewModel extends ChangeNotifier {
             initAspectRatio: CropAspectRatioPreset.square,
             hideBottomControls: true,
             lockAspectRatio: true,
-            aspectRatioPresets: [CropAspectRatioPreset.square]
-          ),
-          IOSUiSettings(
-            title: 'Crop Image',
+            aspectRatioPresets: [CropAspectRatioPreset.square],
           ),
         ],
       );
@@ -74,14 +71,15 @@ class EventCreationViewModel extends ChangeNotifier {
       final geoPoint = GeoPoint(location!.latitude, location!.longitude);
       final event = Event(
         title: title,
-        date: dateTime!,
+        startDate: dateTime!,
+        endDate: endDateTime,
         location: geoPoint,
         visibility: visibility,
         description: description.isNotEmpty ? description : null,
         image: image,
-        creatorId: 'dummyUserId', // TODO: insert actual user UID
+        creatorId: 'dummyUserId', // TODO: Insert the actual user UID
         promoted: promoted,
-        participantCount: 1, // Upon Creation we will always have one participant
+        participantCount: 1, // Upon creation we always have one participant
       );
 
       await _eventService.createEvent(event, imageFile: imageFile);
