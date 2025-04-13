@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/services/auth_service.dart';
 import '../../widgets/password_form_field.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -17,9 +18,50 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  void _submitLogin() {
+  bool _isLoading = false;
+
+  void _submitLogin() async {
     if (_formKey.currentState!.validate()) {
-      // TODO login action here
+      setState(() {
+        _isLoading = true;
+      });
+      final status = await AuthService().signInWithEmailPassword(
+        _emailController.text,
+        _passwordController.text,
+      );
+      String? message;
+      switch (status) {
+        case SignInStatus.success:
+          message = null;
+          break;
+        case SignInStatus.userNotFound:
+          message = 'Benutzer existiert nicht';
+          break;
+        case SignInStatus.wrongPassword:
+          message = 'Falsches Passwort';
+          break;
+        case SignInStatus.invalidEmail:
+          message = 'Die Email ist nicht korrekt.';
+          break;
+        case SignInStatus.noInternet:
+          message = 'Verbindung fehlgeschlagen';
+          break;
+        case SignInStatus.unknownError:
+          message = 'Registrierung fehlgeschlagen';
+          break;
+      }
+
+      setState(() {
+        _isLoading = false;
+      });
+      if (!mounted) return;
+      if (message == null) {
+        context.go('/profile-settings');
+      } else {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message!)));
+      }
     }
   }
 
@@ -74,16 +116,18 @@ class _LoginScreenState extends State<LoginScreen> {
               validator: _validatePassword,
               textInputAction: TextInputAction.next,
             ),
-            Row(
-              children: [
-                Expanded(
-                  child: FilledButton(
-                    onPressed: _submitLogin,
-                    child: Text('Anmelden'),
-                  ),
+            _isLoading
+                ? Center(child: CircularProgressIndicator())
+                : Row(
+                  children: [
+                    Expanded(
+                      child: FilledButton(
+                        onPressed: _submitLogin,
+                        child: Text('Anmelden'),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
             Row(
               children: [
                 TextButton(

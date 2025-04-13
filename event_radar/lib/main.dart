@@ -8,6 +8,7 @@ import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:go_router/go_router.dart';
+import 'core/services/auth_service.dart';
 import 'firebase_options.dart';
 import 'views/event_list_screen.dart';
 import 'views/event_creation_screen.dart';
@@ -119,15 +120,21 @@ class MyApp extends StatelessWidget {
             routes: [
               GoRoute(
                 path: '/profile-settings',
-                builder: (context, state) => ProfileSettingsScreen(),
+                builder: (context, state) {
+                  final user = AuthService().currentUser();
+                  return ProfileSettingsScreen(
+                    email: user?.email,
+                    name: user?.displayName,
+                  );
+                },
                 redirect: (context, state) {
                   // redirect to login if not logged in
-                  final loggedIn = false;
+                  final loggedIn = AuthService().currentUser() != null;
                   if (!loggedIn) {
                     return '/login';
                   }
                   return null;
-                }
+                },
               ),
               GoRoute(
                 path: '/login',
@@ -140,8 +147,8 @@ class MyApp extends StatelessWidget {
                   GoRoute(
                     path: 'reset-password',
                     builder: (context, state) => ResetPasswordScreen(),
-                  )
-                ]
+                  ),
+                ],
               ),
             ],
           ),

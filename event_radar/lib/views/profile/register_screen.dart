@@ -1,3 +1,4 @@
+import 'package:event_radar/core/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -19,9 +20,50 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _password1Controller = TextEditingController();
   final _password2Controller = TextEditingController();
 
-  void _submitRegister() {
+  bool _isLoading = false;
+
+  void _submitRegister() async {
     if (_formKey.currentState!.validate()) {
-      // TODO register action here
+      setState(() {
+        _isLoading = true;
+      });
+      final status = await AuthService().registerWithEmailPassword(
+        _emailController.text,
+        _password1Controller.text,
+      );
+      String? message;
+      switch (status) {
+        case RegisterStatus.success:
+          message = null;
+          break;
+        case RegisterStatus.weakPassword:
+          message = 'Das Passwort ist zu schwach.';
+          break;
+        case RegisterStatus.emailAlreadyUsed:
+          message = 'Es gibt bereits einen Account mit dieser Email.';
+          break;
+        case RegisterStatus.invalidEmail:
+          message = 'Die Email ist nicht korrekt.';
+          break;
+        case RegisterStatus.noInternet:
+          message = 'Verbindung fehlgeschlagen';
+          break;
+        case RegisterStatus.unknownError:
+          message = 'Registrierung fehlgeschlagen';
+          break;
+      }
+
+      setState(() {
+        _isLoading = false;
+      });
+      if (!mounted) return;
+      if (message == null) {
+       context.go('/profile-settings');
+      } else {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message!)));
+      }
     }
   }
 
@@ -33,14 +75,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (value == null || value.isEmpty) {
       return 'Bitte Email eingeben';
     }
-    return null;
-  }
-
-  String? _validateName(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Bitte Name eingeben';
-    }
-    // TODO check for uniqueness
     return null;
   }
 
@@ -80,16 +114,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 prefixIcon: Icon(Icons.email),
               ),
             ),
-            TextFormField(
-              controller: _nameController,
-              textInputAction: TextInputAction.next,
-              validator: _validateName,
-              decoration: InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: 'Name',
-                prefixIcon: Icon(Icons.person),
-              ),
-            ),
             PasswordFormField(
               controller: _password1Controller,
               validator: _validatePassword,
@@ -100,16 +124,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
               validator: _validatePassword,
               textInputAction: TextInputAction.next,
             ),
-            Row(
-              children: [
-                Expanded(
-                  child: FilledButton(
-                      onPressed: _submitRegister,
-                      child: Text('Registrieren')
-                  ),
+            _isLoading
+                ? Center(child: CircularProgressIndicator())
+                : Row(
+                  children: [
+                    Expanded(
+                      child: FilledButton(
+                        onPressed: _submitRegister,
+                        child: Text('Registrieren'),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
