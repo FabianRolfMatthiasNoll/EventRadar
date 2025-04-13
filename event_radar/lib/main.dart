@@ -55,6 +55,8 @@ Future<void> main() async {
 class MyApp extends StatelessWidget {
   MyApp({super.key});
 
+
+
   final _router = GoRouter(
     initialLocation: '/event-list',
     navigatorKey: _rootNavigatorKey,
@@ -79,21 +81,22 @@ class MyApp extends StatelessWidget {
                       );
                     },
                   ),
-                  GoRoute(
-                    path: '/event-overview/:index',
-                    builder: (context, state) {
-                      // TODO create own viewModel for EventOverviewScreen
-                      final id = int.parse(state.pathParameters['index']!);
-                      return Consumer<EventListViewModel>(
-                        builder: (context, viewModel, child) {
-                          return EventOverviewScreen(
-                            event: viewModel.events[id],
-                          );
-                        },
+                ],
+              ),
+              GoRoute(
+                path: '/event-overview/:index',
+                builder: (context, state) {
+                  // TODO create own viewModel for EventOverviewScreen
+                  // TODO use id instead of index
+                  final id = int.parse(state.pathParameters['index']!);
+                  return Consumer<EventListViewModel>(
+                    builder: (context, viewModel, child) {
+                      return EventOverviewScreen(
+                        event: viewModel.events[id],
                       );
                     },
-                  ),
-                ],
+                  );
+                },
               ),
             ],
           ),

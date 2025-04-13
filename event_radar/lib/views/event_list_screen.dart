@@ -78,7 +78,7 @@ class EventListScreen extends StatelessWidget {
                     style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                   onTap: () {
-                    context.go('/event-list/event-overview/$index');
+                    context.push('/event-overview/$index');
                   },
                 );
               },
