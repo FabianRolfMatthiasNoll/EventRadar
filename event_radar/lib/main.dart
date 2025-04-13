@@ -1,5 +1,3 @@
-import 'package:event_radar/core/services/event_service.dart';
-import 'package:event_radar/core/viewmodels/profile_settings_viewmodel.dart';
 import 'package:event_radar/views/event_overview_screen.dart';
 import 'package:event_radar/views/profile/profile_screen.dart';
 import 'package:event_radar/widgets/main_scaffold.dart';
@@ -43,9 +41,6 @@ Future<void> main() async {
         ),
         ChangeNotifierProvider<EventMapViewModel>(
           create: (_) => EventMapViewModel(),
-        ),
-        ChangeNotifierProvider<ProfileSettingsViewModel>(
-          create: (_) => ProfileSettingsViewModel(),
         ),
       ],
       child: MyApp(),
