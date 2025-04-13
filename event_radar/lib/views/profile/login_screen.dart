@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../widgets/password_form_field.dart';
 
@@ -7,7 +8,7 @@ class LoginScreen extends StatefulWidget {
 
   @override
   State<StatefulWidget> createState() {
-   return _LoginScreenState();
+    return _LoginScreenState();
   }
 }
 
@@ -36,12 +37,12 @@ class _LoginScreenState extends State<LoginScreen> {
     return null;
   }
 
-  void _gotoRegister() {
-    // TODO
+  void _gotoRegister(BuildContext context) {
+    context.go('/login/register');
   }
 
-  void _iForgor() {
-    // TODO
+  void _iForgor(BuildContext context) {
+    context.go('/login/reset-password');
   }
 
   @override
@@ -54,6 +55,10 @@ class _LoginScreenState extends State<LoginScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           spacing: 16,
           children: [
+            Text(
+              'Anmeldung',
+              style: Theme.of(context).textTheme.headlineMedium,
+            ),
             TextFormField(
               controller: _emailController,
               decoration: InputDecoration(
@@ -74,7 +79,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 Expanded(
                   child: FilledButton(
                     onPressed: _submitLogin,
-                    child: Text('Log in')
+                    child: Text('Anmelden'),
                   ),
                 ),
               ],
@@ -82,14 +87,14 @@ class _LoginScreenState extends State<LoginScreen> {
             Row(
               children: [
                 TextButton(
-                  onPressed: _gotoRegister,
+                  onPressed: () => _gotoRegister(context),
                   child: Text('Registrieren'),
                 ),
                 Expanded(child: SizedBox()),
                 TextButton(
-                  onPressed: _iForgor,
+                  onPressed: () => _iForgor(context),
                   child: Text('Passwort vergessen'),
-                )
+                ),
               ],
             ),
           ],

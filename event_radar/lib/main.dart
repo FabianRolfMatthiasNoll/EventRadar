@@ -1,5 +1,8 @@
 import 'package:event_radar/views/event_overview_screen.dart';
-import 'package:event_radar/views/profile/profile_screen.dart';
+import 'package:event_radar/views/profile/login_screen.dart';
+import 'package:event_radar/views/profile/profile_settings_screen.dart';
+import 'package:event_radar/views/profile/register_screen.dart';
+import 'package:event_radar/views/profile/reset_password_screen.dart';
 import 'package:event_radar/widgets/main_scaffold.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:flutter/material.dart';
@@ -112,10 +115,33 @@ class MyApp extends StatelessWidget {
             ],
           ),
           StatefulShellBranch(
+            initialLocation: '/profile-settings',
             routes: [
               GoRoute(
                 path: '/profile-settings',
-                builder: (context, state) => ProfileScreen(),
+                builder: (context, state) => ProfileSettingsScreen(),
+                redirect: (context, state) {
+                  // redirect to login if not logged in
+                  final loggedIn = false;
+                  if (!loggedIn) {
+                    return '/login';
+                  }
+                  return null;
+                }
+              ),
+              GoRoute(
+                path: '/login',
+                builder: (context, state) => LoginScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'register',
+                    builder: (context, state) => RegisterScreen(),
+                  ),
+                  GoRoute(
+                    path: 'reset-password',
+                    builder: (context, state) => ResetPasswordScreen(),
+                  )
+                ]
               ),
             ],
           ),

@@ -1,5 +1,6 @@
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
   const ResetPasswordScreen({super.key});
@@ -27,10 +28,6 @@ class _ResetPasswordScreenState extends State<StatefulWidget> {
     return null;
   }
 
-  void _goBack() {
-    // TODO go back
-  }
-
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -41,6 +38,10 @@ class _ResetPasswordScreenState extends State<StatefulWidget> {
           mainAxisAlignment: MainAxisAlignment.center,
           spacing: 16,
           children: [
+            Text(
+              'Passwort zurücksetzen',
+              style: Theme.of(context).textTheme.headlineMedium,
+            ),
             TextFormField(
               controller: _emailController,
               decoration: InputDecoration(
@@ -64,7 +65,7 @@ class _ResetPasswordScreenState extends State<StatefulWidget> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 TextButton(
-                  onPressed: _goBack,
+                  onPressed: () => context.pop(),
                   child: Text('zurück'),
                 ),
               ],

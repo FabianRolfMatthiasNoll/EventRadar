@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../widgets/password_form_field.dart';
 
@@ -24,8 +25,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
-  void _gotoLogin() {
-    // TODO
+  void _gotoLogin(BuildContext context) {
+    context.go('/login');
   }
 
   String? _validateEmail(String? value) {
@@ -65,6 +66,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           spacing: 16,
           children: [
+            Text(
+              'Registrierung',
+              style: Theme.of(context).textTheme.headlineMedium,
+            ),
             TextFormField(
               controller: _emailController,
               validator: _validateEmail,
@@ -109,7 +114,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 TextButton(
-                  onPressed: _gotoLogin,
+                  onPressed: () => _gotoLogin(context),
                   child: Text('Einloggen'),
                 ),
               ],
