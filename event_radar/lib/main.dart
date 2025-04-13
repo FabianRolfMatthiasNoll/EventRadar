@@ -57,7 +57,7 @@ class MyApp extends StatelessWidget {
     routes: [
       StatefulShellRoute.indexedStack(
         builder: (contest, state, navigationShell) {
-          return NavbarScaffold(navigationShell: navigationShell);
+          return NavbarContainer(navigationShell: navigationShell);
         },
         branches: [
           StatefulShellBranch(

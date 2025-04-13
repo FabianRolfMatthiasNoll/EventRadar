@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-class NavbarScaffold extends StatelessWidget {
+class NavbarContainer extends StatelessWidget {
   final Widget? floatingActionButton;
   final StatefulNavigationShell navigationShell;
 
@@ -13,7 +13,7 @@ class NavbarScaffold extends StatelessWidget {
     );
   }
 
-  const NavbarScaffold({
+  const NavbarContainer({
     super.key,
     this.floatingActionButton,
     required this.navigationShell,
@@ -22,8 +22,6 @@ class NavbarScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: navigationShell,
-      floatingActionButton: floatingActionButton,
-      // Only display the bottom navigation bar if showBottomNavigation is true
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         currentIndex: navigationShell.currentIndex,
@@ -39,18 +37,20 @@ class NavbarScaffold extends StatelessWidget {
   }
 }
 
-class TopBarScaffold extends StatelessWidget {
-  const TopBarScaffold({
+class MainScaffold extends StatelessWidget {
+  const MainScaffold({
     super.key,
     this.showBackButton = true,
     required this.title,
     this.body,
     this.appBarActions = const [],
+    this.floatingActionButton,
   });
   final bool showBackButton;
   final String title;
   final Widget? body;
   final List<Widget> appBarActions;
+  final Widget? floatingActionButton;
 
   Widget? leadingIcon(BuildContext context) {
     // Only show the back button if showBackButton is true AND there's a route to pop.
@@ -68,19 +68,8 @@ class TopBarScaffold extends StatelessWidget {
         title: Text(title),
         actions: appBarActions,
       ),
+      floatingActionButton: floatingActionButton,
       body: body,
     );
-  }
-}
-
-class FABScaffold extends StatelessWidget {
-  const FABScaffold({super.key, required this.floatingActionButton, this.body});
-
-  final FloatingActionButton floatingActionButton;
-  final Widget? body;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(floatingActionButton: floatingActionButton, body: body);
   }
 }
