@@ -60,7 +60,7 @@ class _LoginScreenState extends State<LoginScreen> {
       } else {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text(message!)));
+        ).showSnackBar(SnackBar(content: Text(message)));
       }
     }
   }

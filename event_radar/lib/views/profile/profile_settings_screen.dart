@@ -1,5 +1,4 @@
 import 'package:event_radar/core/services/auth_service.dart';
-import 'package:event_radar/views/profile/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 

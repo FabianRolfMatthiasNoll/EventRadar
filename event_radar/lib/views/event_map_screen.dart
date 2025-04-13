@@ -6,7 +6,6 @@ import '../core/providers/location_provider.dart';
 import '../core/viewmodels/event_map_viewmodel.dart';
 import '../core/models/event.dart';
 import '../core/utils/initials_helper.dart';
-import '../widgets/main_scaffold.dart';
 import 'package:collection/collection.dart';
 
 class EventMapScreen extends StatelessWidget {
