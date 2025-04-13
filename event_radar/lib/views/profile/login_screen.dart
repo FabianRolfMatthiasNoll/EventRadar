@@ -47,7 +47,7 @@ class _LoginScreenState extends State<LoginScreen> {
           message = 'Verbindung fehlgeschlagen';
           break;
         case SignInStatus.unknownError:
-          message = 'Registrierung fehlgeschlagen';
+          message = 'Anmeldung fehlgeschlagen';
           break;
       }
 
