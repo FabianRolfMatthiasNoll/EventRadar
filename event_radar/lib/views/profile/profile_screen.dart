@@ -13,11 +13,6 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MainScaffold(
-        title: 'Profil',
-        currentIndex: 3,
-        // body: ProfileSettingsScreen(),
-        body: RegisterScreen(),
-    );
+    return RegisterScreen();
   }
 }

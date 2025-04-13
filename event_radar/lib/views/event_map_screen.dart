@@ -72,26 +72,21 @@ class EventMapScreen extends StatelessWidget {
       );
     }
 
-    return MainScaffold(
-      title: 'Event Map',
-      showBackButton: false, // Use false on bottom navigation screens.
-      currentIndex: 1,
-      body: Consumer<EventMapViewModel>(
-        builder: (context, viewModel, child) {
-          if (viewModel.isLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          return GoogleMap(
-            initialCameraPosition: CameraPosition(
-              target: LatLng(userPosition.latitude, userPosition.longitude),
-              zoom: 15,
-            ),
-            markers: _createMarkers(viewModel.events, context),
-            myLocationEnabled: true,
-            zoomControlsEnabled: true,
-          );
-        },
-      ),
+    return Consumer<EventMapViewModel>(
+      builder: (context, viewModel, child) {
+        if (viewModel.isLoading) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        return GoogleMap(
+          initialCameraPosition: CameraPosition(
+            target: LatLng(userPosition.latitude, userPosition.longitude),
+            zoom: 15,
+          ),
+          markers: _createMarkers(viewModel.events, context),
+          myLocationEnabled: true,
+          zoomControlsEnabled: true,
+        );
+      },
     );
   }
 }

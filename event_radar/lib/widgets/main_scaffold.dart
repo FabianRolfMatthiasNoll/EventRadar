@@ -1,80 +1,86 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-class MainScaffold extends StatelessWidget {
-  final String title;
-  final Widget body;
-  final int? currentIndex;
-  final bool showBackButton;
+class NavbarScaffold extends StatelessWidget {
   final Widget? floatingActionButton;
-  final void Function(int)? onBottomNavTap;
-  final List<Widget>? appBarActions;
-  final bool showBottomNavigation;
+  final StatefulNavigationShell navigationShell;
 
-  const MainScaffold({
+  void _onTap(index) {
+    navigationShell.goBranch(
+      index,
+      // Go to initial location if tapped item is already active
+      initialLocation: index == navigationShell.currentIndex,
+    );
+  }
+
+  const NavbarScaffold({
     super.key,
-    required this.title,
-    required this.body,
-    this.currentIndex,
-    this.showBackButton = true,
     this.floatingActionButton,
-    this.onBottomNavTap,
-    this.appBarActions,
-    this.showBottomNavigation = true,
+    required this.navigationShell,
   });
-  // TODO: The Scaffolding should be placed on a layer. All screens that are below that
-  // layer have it above it they dont. Then this can be a stateful widget keeping its state.
-  // Probably also more performance style. => Will do that tomorrow
-  // Or build it so that the Bottompart CAN (not MUST) be switched upon instantiation then we
-  // could handle different setups like later in a chat and still have the top bar?
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        // Only show the back button if showBackButton is true AND there's a route to pop.
-        leading: showBackButton && Navigator.canPop(context)
-            ? IconButton(
-          icon: const BackButtonIcon(),
-          onPressed: () => Navigator.pop(context),
-        )
-            : null,
-        title: Text(title),
-        actions: appBarActions,
-      ),
-      body: body,
+      body: navigationShell,
       floatingActionButton: floatingActionButton,
       // Only display the bottom navigation bar if showBottomNavigation is true
-      bottomNavigationBar: showBottomNavigation
-          ? BottomNavigationBar(
+      bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
-        // If currentIndex is null, set to 0 but style it to match unselected state. I know its dirty
-        // but a good way before the restructuring with the stateful bar then we could just have the last
-        // selected for example
-        currentIndex: currentIndex ?? 0,
-        onTap: onBottomNavTap ??
-                (index) {
-              // Global navigation handling.
-              if (index == 0) {
-                context.go('/');
-              } else if (index == 1) {
-                context.go('/map-events');
-              } else if (index == 2) {
-                context.go('/search');
-              } else if (index == 3) {
-                context.go('/profile-settings');
-              }
-            },
+        currentIndex: navigationShell.currentIndex,
+        onTap: _onTap,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(icon: Icon(Icons.map), label: 'Karte'),
           BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Suche'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profil'),
         ],
-        // If currentIndex is null, set selected and unselected colors to the same value.
-        selectedItemColor: currentIndex == null ? Theme.of(context).unselectedWidgetColor : Theme.of(context).primaryColor,
-        unselectedItemColor: Theme.of(context).unselectedWidgetColor,
-      )
-          : null,
+      ),
     );
+  }
+}
+
+class TopBarScaffold extends StatelessWidget {
+  const TopBarScaffold({
+    super.key,
+    this.showBackButton = true,
+    required this.title,
+    this.body,
+    this.appBarActions = const [],
+  });
+  final bool showBackButton;
+  final String title;
+  final Widget? body;
+  final List<Widget> appBarActions;
+
+  Widget? leadingIcon(BuildContext context) {
+    // Only show the back button if showBackButton is true AND there's a route to pop.
+    if (showBackButton && context.canPop()) {
+      return IconButton(icon: BackButtonIcon(), onPressed: () => context.pop());
+    }
+    return null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        leading: leadingIcon(context),
+        title: Text(title),
+        actions: appBarActions,
+      ),
+      body: body,
+    );
+  }
+}
+
+class FABScaffold extends StatelessWidget {
+  const FABScaffold({super.key, required this.floatingActionButton, this.body});
+
+  final FloatingActionButton floatingActionButton;
+  final Widget? body;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(floatingActionButton: floatingActionButton, body: body);
   }
 }

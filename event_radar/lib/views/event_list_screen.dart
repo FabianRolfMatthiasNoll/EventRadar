@@ -21,62 +21,62 @@ class EventListScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final userPosition = Provider.of<LocationProvider>(context).currentPosition;
 
-    return MainScaffold(
+    return TopBarScaffold(
       title: 'Events',
-      currentIndex: 0,
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          context.go('/event-list/create-event');
-        },
-        child: const Icon(Icons.add),
-      ),
-      showBackButton: false,
-      body: Consumer<EventListViewModel>(
-        builder: (context, viewModel, child) {
-          if (viewModel.isLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          return RefreshIndicator(
-            onRefresh: () => _refreshEvents(context),
-            child: ListView.builder(
-              itemCount: viewModel.events.length,
-              itemBuilder: (context, index) {
-                final Event event = viewModel.events[index];
-                final double distance = userPosition != null
-                    ? (Geolocator.distanceBetween(
-                    userPosition.latitude,
-                    userPosition.longitude,
-                    event.location.latitude,
-                    event.location.longitude) / 1000.0)
-                    : 0.0;
-                final String formattedDate =
-                DateFormat('dd.MM.yyyy – HH:mm').format(event.date);
+      body: FABScaffold(
+        floatingActionButton: FloatingActionButton(
+          onPressed: () {
+            context.go('/event-list/create-event');
+          },
+          child: const Icon(Icons.add),
+        ),
+        body: Consumer<EventListViewModel>(
+          builder: (context, viewModel, child) {
+            if (viewModel.isLoading) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            return RefreshIndicator(
+              onRefresh: () => _refreshEvents(context),
+              child: ListView.builder(
+                itemCount: viewModel.events.length,
+                itemBuilder: (context, index) {
+                  final Event event = viewModel.events[index];
+                  final double distance = userPosition != null
+                      ? (Geolocator.distanceBetween(
+                      userPosition.latitude,
+                      userPosition.longitude,
+                      event.location.latitude,
+                      event.location.longitude) / 1000.0)
+                      : 0.0;
+                  final String formattedDate =
+                  DateFormat('dd.MM.yyyy – HH:mm').format(event.date);
 
-                return ListTile(
-                  leading: CircleAvatar(
-                    backgroundImage: (event.image.isNotEmpty &&
-                        event.image.startsWith('http'))
-                        ? NetworkImage(event.image)
-                        : null,
-                    child: (event.image.isEmpty ||
-                        !event.image.startsWith('http'))
-                        ? Text(getInitials(event.title))
-                        : null,
-                  ),
-                  title: Text(event.title),
-                  subtitle: Text(
-                    "${event.participantCount} Teilnehmer • ${distance.toStringAsFixed(1)} km • $formattedDate",
-                    style:
-                    const TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
-                  onTap: () {
-                    context.go('/event-list/event-overview/$index');
-                  },
-                );
-              },
-            ),
-          );
-        },
+                  return ListTile(
+                    leading: CircleAvatar(
+                      backgroundImage: (event.image.isNotEmpty &&
+                          event.image.startsWith('http'))
+                          ? NetworkImage(event.image)
+                          : null,
+                      child: (event.image.isEmpty ||
+                          !event.image.startsWith('http'))
+                          ? Text(getInitials(event.title))
+                          : null,
+                    ),
+                    title: Text(event.title),
+                    subtitle: Text(
+                      "${event.participantCount} Teilnehmer • ${distance.toStringAsFixed(1)} km • $formattedDate",
+                      style:
+                      const TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                    onTap: () {
+                      context.go('/event-list/event-overview/$index');
+                    },
+                  );
+                },
+              ),
+            );
+          },
+        ),
       ),
     );
   }

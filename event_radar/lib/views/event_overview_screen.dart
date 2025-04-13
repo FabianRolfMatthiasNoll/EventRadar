@@ -35,9 +35,8 @@ class EventOverviewScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final String formattedDate = DateFormat('dd.MM.yyyy – HH:mm').format(event.date);
 
-    return MainScaffold(
+    return TopBarScaffold(
       title: 'Event Details',
-      currentIndex: null,
       appBarActions: [
         IconButton(
           icon: const Icon(Icons.settings),
