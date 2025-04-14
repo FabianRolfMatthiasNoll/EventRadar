@@ -4,12 +4,14 @@ class PasswordFormField extends StatefulWidget {
   final TextEditingController? controller;
   final String? Function(String?)? validator;
   final TextInputAction? textInputAction;
+  final String? labelText;
 
   const PasswordFormField({
     super.key,
     this.controller,
     this.validator,
     this.textInputAction,
+    this.labelText = 'Passwort',
   });
 
   @override
@@ -37,7 +39,7 @@ class _PasswordFormFieldState extends State<PasswordFormField> {
       onFieldSubmitted: (_) => FocusScope.of(context).nextFocus(),
       decoration: InputDecoration(
         border: OutlineInputBorder(),
-        labelText: 'Passwort',
+        labelText: widget.labelText,
         prefixIcon: Icon(Icons.lock),
         suffixIcon: IconButton(
           icon: Icon(

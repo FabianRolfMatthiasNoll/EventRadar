@@ -5,12 +5,13 @@ class AuthService {
     return FirebaseAuth.instance.currentUser;
   }
 
-  Future<RegisterStatus> registerWithEmailPassword(String email, String password) async {
+  Future<RegisterStatus> register(String email, String password, String name) async {
     try {
-      await FirebaseAuth.instance.createUserWithEmailAndPassword(
+      var credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
+      await credential.user?.updateDisplayName(name);
       return RegisterStatus.success;
     } on FirebaseAuthException catch (e) {
       switch (e.code) {

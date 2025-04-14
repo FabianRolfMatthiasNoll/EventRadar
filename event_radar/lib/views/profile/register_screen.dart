@@ -27,9 +27,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
       setState(() {
         _isLoading = true;
       });
-      final status = await AuthService().registerWithEmailPassword(
+      final status = await AuthService().register(
         _emailController.text,
         _password1Controller.text,
+        _nameController.text,
       );
       String? message;
       switch (status) {
@@ -58,7 +59,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       });
       if (!mounted) return;
       if (message == null) {
-       context.go('/profile-settings');
+        context.go('/profile-settings');
       } else {
         ScaffoldMessenger.of(
           context,
@@ -74,6 +75,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String? _validateEmail(String? value) {
     if (value == null || value.isEmpty) {
       return 'Bitte Email eingeben';
+    }
+    return null;
+  }
+
+  String? _validateName(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Bitte Name eingeben';
     }
     return null;
   }
@@ -114,15 +122,27 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 prefixIcon: Icon(Icons.email),
               ),
             ),
+            TextFormField(
+              controller: _nameController,
+              validator: _validateName,
+              textInputAction: TextInputAction.next,
+              decoration: InputDecoration(
+                border: OutlineInputBorder(),
+                labelText: 'Name',
+                prefixIcon: Icon(Icons.person),
+              ),
+            ),
             PasswordFormField(
               controller: _password1Controller,
               validator: _validatePassword,
               textInputAction: TextInputAction.next,
+              labelText: 'Passwort',
             ),
             PasswordFormField(
               controller: _password2Controller,
               validator: _validatePassword,
               textInputAction: TextInputAction.next,
+              labelText: 'Passwort wiederholen',
             ),
             _isLoading
                 ? Center(child: CircularProgressIndicator())
