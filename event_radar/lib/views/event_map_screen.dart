@@ -22,15 +22,12 @@ class EventMapScreen extends StatelessWidget {
         icon: BitmapDescriptor.defaultMarkerWithHue(
           event.promoted ? BitmapDescriptor.hueYellow : BitmapDescriptor.hueAzure,
         ),
-        infoWindow: InfoWindow(
-          title: event.title,
-          snippet: event.description ?? '',
-          onTap: () => _showEventDetails(context, event, index),
-        ),
+        onTap: () => _showEventDetails(context, event, index),
       );
     }).toSet();
   }
-
+  // TODO: Berechtigungs abfrage bei start von app Und standard location falls no permission
+// TODO: Fix content shit and stuff -> Warnings clearing
   void _showEventDetails(BuildContext context, Event event, int index) {
     showModalBottomSheet(
       context: context,
