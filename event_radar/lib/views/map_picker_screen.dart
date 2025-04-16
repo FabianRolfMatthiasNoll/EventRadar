@@ -1,86 +1,40 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:geolocator/geolocator.dart';
+import 'package:provider/provider.dart';
+import '../core/providers/location_provider.dart';
 
 class MapPickerScreen extends StatefulWidget {
   const MapPickerScreen({super.key});
 
   @override
-  _MapPickerScreenState createState() => _MapPickerScreenState();
+  State<MapPickerScreen> createState() => _MapPickerScreenState();
 }
 
 class _MapPickerScreenState extends State<MapPickerScreen> {
   late CameraPosition _initialPosition;
   LatLng? _pickedLocation;
-  GoogleMapController? _mapController;
-  bool _loading = true;
 
   @override
   void initState() {
     super.initState();
-    _setInitialLocation();
-  }
-
-  Future<void> _setInitialLocation() async {
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      // Random Fallback value wenn man GPS nicht aktivieren will
-      _initialPosition = const CameraPosition(
-        target: LatLng(52.5200, 13.4050),
-        zoom: 12,
-      );
-      _loading = false;
-      setState(() {});
-      return;
-    }
-
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        _initialPosition = const CameraPosition(
-          target: LatLng(52.5200, 13.4050),
-          zoom: 12,
-        );
-        _loading = false;
-        setState(() {});
-        return;
-      }
-    }
-
-    if (permission == LocationPermission.deniedForever) {
-      _initialPosition = const CameraPosition(
-        target: LatLng(52.5200, 13.4050),
-        zoom: 12,
-      );
-      _loading = false;
-      setState(() {});
-      return;
-    }
-
-    final position = await Geolocator.getCurrentPosition();
+    final currentPosition =
+        Provider.of<LocationProvider>(context, listen: false).currentPosition;
     _initialPosition = CameraPosition(
-      target: LatLng(position.latitude, position.longitude),
-      zoom: 15,
+      target: currentPosition != null
+          ? LatLng(currentPosition.latitude, currentPosition.longitude)
+          : const LatLng(52.5200, 13.4050), // fallback
+      zoom: currentPosition != null ? 15.0 : 12.0,
     );
-    _loading = false;
-    setState(() {});
   }
 
-  void _onMapTap(LatLng position) {
+  void _onMapTap(LatLng pos) {
     setState(() {
-      _pickedLocation = position;
+      _pickedLocation = pos;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Ort auswählen'),
@@ -90,9 +44,6 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
           GoogleMap(
             initialCameraPosition: _initialPosition,
             onTap: _onMapTap,
-            onMapCreated: (controller) {
-              _mapController = controller;
-            },
             markers: _pickedLocation != null
                 ? {
               Marker(
