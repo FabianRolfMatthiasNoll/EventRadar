@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/event.dart';
+import '../services/auth_service.dart';
 import '../services/event_service.dart';
 
 class EventListViewModel extends ChangeNotifier {
@@ -10,24 +11,13 @@ class EventListViewModel extends ChangeNotifier {
   List<Event> events = [];
   bool isLoading = false;
 
-  EventListViewModel() {
-    fetchEvents();
-  }
-
-  Future<void> fetchEvents() async {
-    isLoading = true;
-    notifyListeners();
-    try {
-      events = await _eventService.getEvents();
-    } catch (e) {
-      print("Error fetching events: $e");
+  Stream<List<Event>> get userEventsStream {
+    final user = AuthService().currentUser();
+    if (user != null) {
+      return _eventService.getUserEventsStream(user.uid);
+    } else {
+      return Stream.value([]);
     }
-    isLoading = false;
-    notifyListeners();
-  }
-
-  Future<void> refreshEvents() async {
-    await fetchEvents();
   }
 
   /// Computes the distance (in km) from the user's current position to the event.

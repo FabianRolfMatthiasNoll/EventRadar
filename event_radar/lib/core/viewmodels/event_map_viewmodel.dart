@@ -4,7 +4,7 @@ import '../services/event_service.dart';
 
 class EventMapViewModel extends ChangeNotifier {
   final EventService _eventService = EventService();
-  List<Event> events = [];
+  List<Event> publicEvents = [];
   bool isLoading = false;
 
   EventMapViewModel() {
@@ -15,8 +15,7 @@ class EventMapViewModel extends ChangeNotifier {
     isLoading = true;
     notifyListeners();
     try {
-      List<Event> allEvents = await _eventService.getEvents();
-      events = allEvents.where((event) => event.visibility == 'public').toList();
+      publicEvents = await _eventService.getPublicEvents();
     } catch (e) {
       print("Error fetching events for map: $e");
     }

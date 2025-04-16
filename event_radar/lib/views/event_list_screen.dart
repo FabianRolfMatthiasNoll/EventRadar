@@ -1,62 +1,68 @@
+import 'package:event_radar/core/utils/image_placeholder.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import '../core/viewmodels/event_list_viewmodel.dart';
+import 'package:provider/provider.dart';
 import '../core/models/event.dart';
-import '../core/utils/initials_helper.dart';
-import '../widgets/main_scaffold.dart';
+import '../core/viewmodels/event_list_viewmodel.dart';
 import '../core/providers/location_provider.dart';
+import '../widgets/main_scaffold.dart';
 
 class EventListScreen extends StatelessWidget {
-  const EventListScreen({Key? key}) : super(key: key);
+  const EventListScreen({super.key});
 
-  Future<void> _refreshEvents(BuildContext context) async {
-    await Provider.of<LocationProvider>(
-      context,
-      listen: false,
-    ).updateLocation();
-    await Provider.of<EventListViewModel>(
-      context,
-      listen: false,
-    ).refreshEvents();
-  }
-
-  String formatDateTime(DateTime dt) => DateFormat('dd.MM.yyyy – HH:mm').format(dt);
+  String formatDateTime(DateTime dt) =>
+      DateFormat('dd.MM.yyyy – HH:mm').format(dt);
 
   @override
   Widget build(BuildContext context) {
-    final userPosition = Provider.of<LocationProvider>(context).currentPosition;
+    final locationProvider = Provider.of<LocationProvider>(context);
+    final userPosition = locationProvider.currentPosition;
+
+    if (userPosition == null) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
 
     return MainScaffold(
-      title: 'Events',
+      title: 'Meine Events',
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           context.go('/event-list/create-event');
         },
         child: const Icon(Icons.add),
       ),
-      body: Consumer<EventListViewModel>(
-        builder: (context, viewModel, child) {
-          if (viewModel.isLoading) {
+      body: StreamBuilder<List<Event>>(
+        stream:
+        Provider.of<EventListViewModel>(context, listen: false).userEventsStream,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
+          if (snapshot.hasError) {
+            return Center(child: Text("Fehler: ${snapshot.error}"));
+          }
+          final events = snapshot.data;
+          if (events == null || events.isEmpty) {
+            return const Center(child: Text("Keine Events gefunden."));
+          }
           return RefreshIndicator(
-            onRefresh: () => _refreshEvents(context),
+            onRefresh: () async {
+              // Optionally update location here before refreshing, if needed.
+              await locationProvider.updateLocation();
+            },
             child: ListView.builder(
-              itemCount: viewModel.events.length,
+              itemCount: events.length,
               itemBuilder: (context, index) {
-                final Event event = viewModel.events[index];
-                final double distance = userPosition != null
-                    ? (Geolocator.distanceBetween(
+                final event = events[index];
+                final double distance = Geolocator.distanceBetween(
                     userPosition.latitude,
                     userPosition.longitude,
                     event.location.latitude,
                     event.location.longitude) /
-                    1000.0)
-                    : 0.0;
-
+                    1000.0;
                 // Build a subtitle that shows start date, and if applicable the end date on a separate line.
                 Widget dateInfo;
                 if (event.endDate != null) {
@@ -73,14 +79,14 @@ class EventListScreen extends StatelessWidget {
                     style: const TextStyle(fontSize: 12, color: Colors.grey),
                   );
                 }
-
                 return ListTile(
                   leading: CircleAvatar(
-                    backgroundImage: (event.image.isNotEmpty && event.image.startsWith('http'))
+                    backgroundImage: (event.image.isNotEmpty &&
+                        event.image.startsWith('http'))
                         ? NetworkImage(event.image)
                         : null,
                     child: (event.image.isEmpty || !event.image.startsWith('http'))
-                        ? Text(getInitials(event.title))
+                        ? Text(getImagePlaceholder(event.title))
                         : null,
                   ),
                   title: Text(event.title),
@@ -95,7 +101,7 @@ class EventListScreen extends StatelessWidget {
                     ],
                   ),
                   onTap: () {
-                    context.push('/event-overview/$index');
+                    context.push('/event-overview/${event.id}');
                   },
                 );
               },
