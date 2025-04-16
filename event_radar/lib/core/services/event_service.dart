@@ -59,7 +59,14 @@ class EventService {
     return Event.fromDocument(await eventRef.get());
   }
 
-  /// Retrieves all events from Firestore.
+  Stream<List<Event>> getUserEventsStream(String uid) {
+    return _firestore
+        .collection('events')
+        .where('participants', arrayContains: uid)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) => Event.fromDocument(doc)).toList());
+  }
+
   Future<List<Event>> getEvents() async {
     QuerySnapshot snapshot = await _firestore.collection('events').get();
     return snapshot.docs.map((doc) => Event.fromDocument(doc)).toList();

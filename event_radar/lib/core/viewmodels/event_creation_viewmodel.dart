@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
 import '../models/event.dart';
+import '../services/auth_service.dart';
 import '../services/event_service.dart';
 import '../utils/initials_helper.dart';
 
@@ -60,6 +61,11 @@ class EventCreationViewModel extends ChangeNotifier {
   }
 
   Future<String> createEvent() async {
+    final currentUser = await AuthService().currentUser();
+    if (currentUser == null) {
+      throw Exception("User not logged in");
+    }
+
     if (!validate()) {
       return 'Bitte alle Felder ausfüllen.';
     }
@@ -77,9 +83,10 @@ class EventCreationViewModel extends ChangeNotifier {
         visibility: visibility,
         description: description.isNotEmpty ? description : null,
         image: image,
-        creatorId: 'dummyUserId', // TODO: Insert the actual user UID
+        creatorId: currentUser.uid,
         promoted: promoted,
-        participantCount: 1, // Upon creation we always have one participant
+        participantCount: 1,
+        participants: [currentUser.uid],
       );
 
       await _eventService.createEvent(event, imageFile: imageFile);

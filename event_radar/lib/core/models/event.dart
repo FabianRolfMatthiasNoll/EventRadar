@@ -12,6 +12,7 @@ class Event {
   final String creatorId;
   final bool promoted;
   final int participantCount;
+  final List<String> participants;
 
   Event({
     this.id,
@@ -25,12 +26,13 @@ class Event {
     required this.creatorId,
     required this.promoted,
     this.participantCount = 0,
+    required this.participants,
   });
 
   Map<String, dynamic> toMap() {
     final map = {
       'title': title,
-      'date': startDate, // Named Date because if no Enddate is selected this represents the date of the event.
+      'date': startDate,
       'location': location,
       'visibility': visibility,
       'description': description,
@@ -39,6 +41,7 @@ class Event {
       'creatorId': creatorId,
       'promoted': promoted,
       'participantCount': participantCount,
+      'participants': participants,
     };
     if (endDate != null) {
       map['endDate'] = endDate;
@@ -60,6 +63,10 @@ class Event {
       creatorId: data['creatorId'] ?? 'dummyUserId',
       promoted: data['promoted'] ?? false,
       participantCount: data['participantCount'] ?? 0,
+      participants: (data['participants'] as List<dynamic>?)
+          ?.map((item) => item.toString())
+          .toList() ??
+          [data['creatorId'] ?? 'dummyUserId'],
     );
   }
 }
