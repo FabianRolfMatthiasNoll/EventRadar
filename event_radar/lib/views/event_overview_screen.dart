@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../core/models/event.dart';
 import '../core/services/auth_service.dart';
 import '../core/services/event_service.dart';
+import '../widgets/confirm_dialog.dart';
 import '../widgets/main_scaffold.dart';
 import '../widgets/static_map_snippet.dart';
 
@@ -13,33 +14,6 @@ class EventOverviewScreen extends StatelessWidget {
   final String eventId;
 
   const EventOverviewScreen({super.key, required this.eventId});
-
-  Future<bool> _showConfirmationDialog(
-    BuildContext context,
-    String title,
-    String content,
-  ) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext dialogContext) {
-        return AlertDialog(
-          title: Text(title),
-          content: Text(content),
-          actions: [
-            TextButton(
-              child: const Text("Abbrechen"),
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-            ),
-            TextButton(
-              child: const Text("Bestätigen"),
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-            ),
-          ],
-        );
-      },
-    );
-    return confirmed ?? false;
-  }
 
   Future<void> _toggleParticipation(
     BuildContext context,
@@ -52,7 +26,7 @@ class EventOverviewScreen extends StatelessWidget {
         isParticipant
             ? "Bist du sicher das du das Event verlassen willst?"
             : "Möchtest du dich bei diesem Event eintragen?";
-    final confirmed = await _showConfirmationDialog(
+    final confirmed = await showConfirmationDialog(
       context,
       confirmTitle,
       confirmContent,
