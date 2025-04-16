@@ -1,5 +1,5 @@
-String getInitials(String title) {
-  final words = title.split(' ');
+String getImagePlaceholder(String name) {
+  final words = name.split(' ').take(2);
   String initials = '';
   for (var word in words) {
     if (word.isNotEmpty) {

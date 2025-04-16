@@ -1,3 +1,4 @@
+import 'package:event_radar/core/utils/image_placeholder.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -5,7 +6,6 @@ import 'package:provider/provider.dart';
 import '../core/providers/location_provider.dart';
 import '../core/viewmodels/event_map_viewmodel.dart';
 import '../core/models/event.dart';
-import '../core/utils/initials_helper.dart';
 import 'package:collection/collection.dart';
 
 class EventMapScreen extends StatelessWidget {
@@ -42,7 +42,7 @@ class EventMapScreen extends StatelessWidget {
                     ? NetworkImage(event.image)
                     : null,
                 child: (event.image.isEmpty || !event.image.startsWith('http'))
-                    ? Text(getInitials(event.title))
+                    ? Text(getImagePlaceholder(event.title))
                     : null,
               ),
               title: Text(event.title),
@@ -50,7 +50,7 @@ class EventMapScreen extends StatelessWidget {
             ),
             ElevatedButton(
               onPressed: () {
-                context.push('/event-overview/$index');
+                context.push('/event-overview/${event.id}');
               },
               child: const Text("Zum Event"),
             ),

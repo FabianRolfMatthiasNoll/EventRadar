@@ -8,7 +8,9 @@ import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:go_router/go_router.dart';
+import 'core/models/event.dart';
 import 'core/services/auth_service.dart';
+import 'core/services/event_service.dart';
 import 'firebase_options.dart';
 import 'views/event_list_screen.dart';
 import 'views/event_creation_screen.dart';
@@ -84,16 +86,23 @@ class MyApp extends StatelessWidget {
                 ],
               ),
               GoRoute(
-                path: '/event-overview/:index',
+                path: '/event-overview/:id',
                 builder: (context, state) {
-                  // TODO create own viewModel for EventOverviewScreen
-                  // TODO use id instead of index
-                  final id = int.parse(state.pathParameters['index']!);
-                  return Consumer<EventListViewModel>(
-                    builder: (context, viewModel, child) {
-                      return EventOverviewScreen(
-                        event: viewModel.events[id],
-                      );
+                  final eventId = state.pathParameters['id']!;
+                  return StreamBuilder<Event>(
+                    stream: EventService().getEventStream(eventId),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Scaffold(
+                          body: Center(child: CircularProgressIndicator()),
+                        );
+                      }
+                      if (snapshot.hasError || !snapshot.hasData) {
+                        return Scaffold(
+                          body: Center(child: Text("Fehler beim Laden des Events")),
+                        );
+                      }
+                      return EventOverviewScreen(event: snapshot.data!);
                     },
                   );
                 },

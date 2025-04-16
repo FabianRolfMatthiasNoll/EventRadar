@@ -67,6 +67,8 @@ class EventService {
         .map((snapshot) => snapshot.docs.map((doc) => Event.fromDocument(doc)).toList());
   }
 
+  // We will not make this a Stream of Snapshots because this is used for example for the map where
+  // real time updates could just eat performance
   Future<List<Event>> getEvents() async {
     QuerySnapshot snapshot = await _firestore.collection('events').get();
     return snapshot.docs.map((doc) => Event.fromDocument(doc)).toList();
@@ -76,4 +78,34 @@ class EventService {
     var doc = await _firestore.collection('events').doc(id).get();
     return Event.fromDocument(doc);
   }
+
+  Stream<Event> getEventStream(String id) {
+    return _firestore
+        .collection('events')
+        .doc(id)
+        .snapshots()
+        .map((doc) => Event.fromDocument(doc));
+  }
+
+  Future<void> joinEvent(String eventId, String userId) async {
+    DocumentReference eventRef = _firestore.collection('events').doc(eventId);
+    await eventRef.update({
+      'participants': FieldValue.arrayUnion([userId]),
+      'participantCount': FieldValue.increment(1),
+    });
+    await eventRef.collection('participants').doc(userId).set({
+      'role': 'participant',
+      'joinedAt': Timestamp.now(),
+    });
+  }
+
+  Future<void> leaveEvent(String eventId, String userId) async {
+    DocumentReference eventRef = _firestore.collection('events').doc(eventId);
+    await eventRef.update({
+      'participants': FieldValue.arrayRemove([userId]),
+      'participantCount': FieldValue.increment(-1),
+    });
+    await eventRef.collection('participants').doc(userId).delete();
+  }
+
 }

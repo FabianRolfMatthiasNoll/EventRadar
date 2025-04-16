@@ -1,3 +1,4 @@
+import 'package:event_radar/core/utils/image_placeholder.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
@@ -5,7 +6,6 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../core/models/event.dart';
 import '../core/viewmodels/event_list_viewmodel.dart';
-import '../core/utils/initials_helper.dart';
 import '../core/providers/location_provider.dart';
 import '../widgets/main_scaffold.dart';
 
@@ -86,7 +86,7 @@ class EventListScreen extends StatelessWidget {
                         ? NetworkImage(event.image)
                         : null,
                     child: (event.image.isEmpty || !event.image.startsWith('http'))
-                        ? Text(getInitials(event.title))
+                        ? Text(getImagePlaceholder(event.title))
                         : null,
                   ),
                   title: Text(event.title),
@@ -101,7 +101,7 @@ class EventListScreen extends StatelessWidget {
                     ],
                   ),
                   onTap: () {
-                    context.push('/event-overview/$index');
+                    context.push('/event-overview/${event.id}');
                   },
                 );
               },

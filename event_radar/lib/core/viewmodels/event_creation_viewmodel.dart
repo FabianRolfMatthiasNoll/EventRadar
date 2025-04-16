@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:event_radar/core/utils/image_placeholder.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -7,7 +8,6 @@ import 'package:image_cropper/image_cropper.dart';
 import '../models/event.dart';
 import '../services/auth_service.dart';
 import '../services/event_service.dart';
-import '../utils/initials_helper.dart';
 
 class EventCreationViewModel extends ChangeNotifier {
   final EventService _eventService = EventService();
@@ -17,16 +17,14 @@ class EventCreationViewModel extends ChangeNotifier {
 
   // Form fields
   String title = '';
-  DateTime? dateTime; // Start time or time
+  DateTime? dateTime;
   DateTime? endDateTime;
   LatLng? location;
   String visibility = 'public';
   String description = '';
   bool promoted = false;
 
-  // Image file (cropped)
   File? imageFile;
-  // Fallback: if no image is chosen, we use initials from the title.
   String? imageUrl;
 
   bool validate() {
@@ -61,7 +59,7 @@ class EventCreationViewModel extends ChangeNotifier {
   }
 
   Future<String> createEvent() async {
-    final currentUser = await AuthService().currentUser();
+    final currentUser = AuthService().currentUser();
     if (currentUser == null) {
       throw Exception("User not logged in");
     }
@@ -73,7 +71,7 @@ class EventCreationViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final image = imageUrl ?? (imageFile != null ? '' : getInitials(title));
+      final image = imageUrl ?? (imageFile != null ? '' : getImagePlaceholder(title));
       final geoPoint = GeoPoint(location!.latitude, location!.longitude);
       final event = Event(
         title: title,

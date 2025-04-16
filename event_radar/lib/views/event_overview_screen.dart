@@ -1,29 +1,82 @@
+import 'package:event_radar/core/utils/image_placeholder.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../core/models/event.dart';
-import '../core/utils/initials_helper.dart';
+import '../core/services/auth_service.dart';
+import '../core/services/event_service.dart';
 import '../widgets/main_scaffold.dart';
 import '../widgets/static_map_snippet.dart';
 
 class EventOverviewScreen extends StatelessWidget {
   final Event event;
-  final bool isParticipant;
 
   const EventOverviewScreen({
     Key? key,
     required this.event,
-    this.isParticipant = true,
   }) : super(key: key);
+
+  Future<bool> _showConfirmationDialog(
+      BuildContext context, String title, String content) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: Text(title),
+          content: Text(content),
+          actions: [
+            TextButton(
+              child: const Text("Abbrechen"),
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+            ),
+            TextButton(
+              child: const Text("Bestätigen"),
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+            ),
+          ],
+        );
+      },
+    );
+    return confirmed ?? false;
+  }
+
+  Future<void> _toggleParticipation(
+      BuildContext context, bool isParticipant, String userId) async {
+    final confirmTitle =
+    isParticipant ? "Event verlassen" : "Event beitreten";
+    final confirmContent = isParticipant
+        ? "Bist du sicher das du das Event verlassen willst?"
+        : "Möchtest du dich bei diesem Event eintragen?";
+    final confirmed = await _showConfirmationDialog(
+        context, confirmTitle, confirmContent);
+    if (!confirmed) return;
+
+    try {
+      if (isParticipant) {
+        await EventService().leaveEvent(event.id!, userId);
+      } else {
+        await EventService().joinEvent(event.id!, userId);
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Operation successful")),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
+  }
 
   Future<void> _openGoogleMaps(BuildContext context) async {
     final lat = event.location.latitude;
     final lng = event.location.longitude;
-    final Uri googleUrl = Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng');
+    final Uri googleUrl =
+    Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng');
     if (await canLaunchUrl(googleUrl)) {
       await launchUrl(googleUrl);
     } else {
+      if(!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Could not open Google Maps')),
       );
@@ -36,6 +89,12 @@ class EventOverviewScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Retrieve the current user (synchronously from FirebaseAuth)
+    final currentUser = AuthService().currentUser();
+    // Determine if the current user is a participant based on event data.
+    final bool isParticipant =
+        currentUser != null && event.participants.contains(currentUser.uid);
+
     return MainScaffold(
       title: 'Event Details',
       appBarActions: [
@@ -56,18 +115,21 @@ class EventOverviewScreen extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 40,
-                  backgroundImage: (event.image.isNotEmpty && event.image.startsWith('http'))
+                  backgroundImage: (event.image.isNotEmpty &&
+                      event.image.startsWith('http'))
                       ? NetworkImage(event.image)
                       : null,
-                  child: (event.image.isEmpty || !event.image.startsWith('http'))
-                      ? Text(getInitials(event.title))
+                  child: (event.image.isEmpty ||
+                      !event.image.startsWith('http'))
+                      ? Text(getImagePlaceholder(event.title))
                       : null,
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Text(
                     event.title,
-                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                        fontSize: 24, fontWeight: FontWeight.bold),
                   ),
                 ),
               ],
@@ -79,7 +141,7 @@ class EventOverviewScreen extends StatelessWidget {
                 leading: const Icon(Icons.description),
                 title: Text(event.description!),
               ),
-            // Date/time display: if an end date exists, show start and end on separate rows.
+            // Start and End Date.
             ListTile(
               leading: const Icon(Icons.calendar_today),
               title: event.endDate != null
@@ -88,7 +150,7 @@ class EventOverviewScreen extends StatelessWidget {
                 children: [
                   Text("Start: ${formatDateTime(event.startDate)}"),
                   const SizedBox(height: 4),
-                  Text("Ende: ${formatDateTime(event.endDate!)}"),
+                  Text("End: ${formatDateTime(event.endDate!)}"),
                 ],
               )
                   : Text(formatDateTime(event.startDate)),
@@ -96,17 +158,18 @@ class EventOverviewScreen extends StatelessWidget {
             // Participants.
             ListTile(
               leading: const Icon(Icons.people),
-              title: Text("${event.participantCount} Teilnehmer"),
+              title: Text("${event.participantCount} participants"),
             ),
             // Announcements.
-            ListTile(
-              leading: const Icon(Icons.announcement),
-              title: const Text("Ankündigungen"),
-              trailing: const Icon(Icons.arrow_forward_ios),
-              onTap: () {
-                // TODO: Navigate to announcements.
-              },
-            ),
+            if(isParticipant)
+              ListTile(
+                leading: const Icon(Icons.announcement),
+                title: const Text("Announcements"),
+                trailing: const Icon(Icons.arrow_forward_ios),
+                onTap: () {
+                  // TODO: Navigate to announcements.
+                },
+              ),
             const SizedBox(height: 16),
             // Location snippet.
             GestureDetector(
@@ -119,7 +182,10 @@ class EventOverviewScreen extends StatelessWidget {
                 ),
                 clipBehavior: Clip.antiAlias,
                 child: StaticMapSnippet(
-                  location: LatLng(event.location.latitude, event.location.longitude),
+                  location: LatLng(
+                    event.location.latitude,
+                    event.location.longitude,
+                  ),
                   width: 600,
                   height: 150,
                   zoom: 15,
@@ -130,9 +196,10 @@ class EventOverviewScreen extends StatelessWidget {
             // Join/Leave button.
             Center(
               child: ElevatedButton(
-                onPressed: () {
-                  // TODO: Implement join/leave logic.
-                },
+                onPressed: currentUser != null
+                    ? () =>
+                    _toggleParticipation(context, isParticipant, currentUser.uid)
+                    : null,
                 child: Text(isParticipant ? "Event verlassen" : "Event beitreten"),
               ),
             ),
