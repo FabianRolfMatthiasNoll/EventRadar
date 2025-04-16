@@ -89,22 +89,7 @@ class MyApp extends StatelessWidget {
                 path: '/event-overview/:id',
                 builder: (context, state) {
                   final eventId = state.pathParameters['id']!;
-                  return StreamBuilder<Event>(
-                    stream: EventService().getEventStream(eventId),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Scaffold(
-                          body: Center(child: CircularProgressIndicator()),
-                        );
-                      }
-                      if (snapshot.hasError || !snapshot.hasData) {
-                        return Scaffold(
-                          body: Center(child: Text("Fehler beim Laden des Events")),
-                        );
-                      }
-                      return EventOverviewScreen(event: snapshot.data!);
-                    },
-                  );
+                  return EventOverviewScreen(eventId: eventId);
                 },
               ),
             ],
