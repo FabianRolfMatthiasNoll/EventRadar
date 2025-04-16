@@ -67,10 +67,13 @@ class EventService {
         .map((snapshot) => snapshot.docs.map((doc) => Event.fromDocument(doc)).toList());
   }
 
-  // We will not make this a Stream of Snapshots because this is used for example for the map where
-  // real time updates could just eat performance
   Future<List<Event>> getEvents() async {
     QuerySnapshot snapshot = await _firestore.collection('events').get();
+    return snapshot.docs.map((doc) => Event.fromDocument(doc)).toList();
+  }
+
+  Future<List<Event>> getPublicEvents() async {
+    QuerySnapshot snapshot = await _firestore.collection('events').where('visibility', isEqualTo: 'public').get();
     return snapshot.docs.map((doc) => Event.fromDocument(doc)).toList();
   }
 

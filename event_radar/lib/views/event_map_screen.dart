@@ -26,8 +26,6 @@ class EventMapScreen extends StatelessWidget {
       );
     }).toSet();
   }
-  // TODO: Berechtigungs abfrage bei start von app Und standard location falls no permission
-// TODO: Fix content shit and stuff -> Warnings clearing
   void _showEventDetails(BuildContext context, Event event, int index) {
     showModalBottomSheet(
       context: context,
@@ -81,7 +79,7 @@ class EventMapScreen extends StatelessWidget {
             target: LatLng(userPosition.latitude, userPosition.longitude),
             zoom: 15,
           ),
-          markers: _createMarkers(viewModel.events, context),
+          markers: _createMarkers(viewModel.publicEvents, context),
           myLocationEnabled: true,
           zoomControlsEnabled: true,
         );
