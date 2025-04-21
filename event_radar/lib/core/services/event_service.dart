@@ -111,4 +111,17 @@ class EventService {
     await eventRef.collection('participants').doc(userId).delete();
   }
 
+  Future<List<Event>> searchEvents({
+    String? name,
+    int? distanceMeters = 0,
+    DateTime? startAfter,
+    DateTime? startBefore,
+    int minParticipants = 1,
+    int? maxParticipants,
+  }) async {
+    var events = _firestore.collection('events');
+    var query = events.where('visibility', isEqualTo: 'public');
+    var snapshot = await query.get();
+    return snapshot.docs.map((doc) => Event.fromDocument(doc)).toList();
+  }
 }
