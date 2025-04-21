@@ -56,8 +56,6 @@ Future<void> main() async {
 class MyApp extends StatelessWidget {
   MyApp({super.key});
 
-
-
   final _router = GoRouter(
     initialLocation: '/event-list',
     navigatorKey: _rootNavigatorKey,
@@ -105,8 +103,7 @@ class MyApp extends StatelessWidget {
             routes: [
               GoRoute(
                 path: '/search',
-                builder:
-                    (context, state) => SearchScreen()
+                builder: (context, state) => SearchScreen(),
               ),
             ],
           ),
@@ -155,6 +152,16 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(routerConfig: _router);
+    return MaterialApp.router(
+      routerConfig: _router,
+      theme: ThemeData(
+        listTileTheme: ListTileThemeData(
+          subtitleTextStyle: TextStyle(
+            fontSize: 12,
+            color: Theme.of(context).colorScheme.onSurface.withAlpha(140),
+          ),
+        ),
+      ),
+    );
   }
 }

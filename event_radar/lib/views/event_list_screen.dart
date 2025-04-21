@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import '../core/models/event.dart';
 import '../core/viewmodels/event_list_viewmodel.dart';
 import '../core/providers/location_provider.dart';
-import '../widgets/event_list.dart';
+import '../widgets/event_tile.dart';
 import '../widgets/main_scaffold.dart';
 
 class EventListScreen extends StatelessWidget {
@@ -48,7 +48,15 @@ class EventListScreen extends StatelessWidget {
               // Optionally update location here before refreshing, if needed.
               await locationProvider.updateLocation();
             },
-            child: EventList(events: events, userPosition: userPosition,),
+            child: ListView.builder(
+              itemCount: events.length,
+              itemBuilder: (BuildContext context, int index) {
+                return EventTile(
+                  event: events[index],
+                  userPosition: userPosition,
+                );
+              },
+            ),
           );
         },
       ),

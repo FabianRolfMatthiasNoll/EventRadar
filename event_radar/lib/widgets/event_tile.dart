@@ -6,13 +6,13 @@ import 'package:intl/intl.dart';
 import '../core/models/event.dart';
 import 'avatar_or_placeholder.dart';
 
-class EventList extends StatelessWidget {
-  final List<Event> events;
+class EventTile extends StatelessWidget {
+  final Event event;
   final Position? userPosition;
 
-  const EventList({
+  const EventTile({
     super.key,
-    required this.events,
+    required this.event,
     required this.userPosition,
   });
 
@@ -47,21 +47,15 @@ class EventList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView.builder(
-      itemCount: events.length,
-      itemBuilder: (context, index) {
-        final event = events[index];
-        return ListTile(
-          leading: AvatarOrPlaceholder(
-            imageUrl: event.image,
-            name: event.title,
-          ),
-          title: Text(event.title),
-          subtitle: Text(createInfoString(event)),
-          onTap: () {
-            context.push('/event-overview/${event.id}');
-          },
-        );
+    return ListTile(
+      leading: AvatarOrPlaceholder(
+        imageUrl: event.image,
+        name: event.title,
+      ),
+      title: Text(event.title),
+      subtitle: Text(createInfoString(event)),
+      onTap: () {
+        context.push('/event-overview/${event.id}');
       },
     );
   }
