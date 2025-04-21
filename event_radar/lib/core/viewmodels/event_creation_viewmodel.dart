@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:event_radar/core/utils/image_placeholder.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -71,7 +70,6 @@ class EventCreationViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final image = imageUrl ?? (imageFile != null ? '' : getImagePlaceholder(title));
       final geoPoint = GeoPoint(location!.latitude, location!.longitude);
       final event = Event(
         title: title,
@@ -80,7 +78,7 @@ class EventCreationViewModel extends ChangeNotifier {
         location: geoPoint,
         visibility: visibility,
         description: description.isNotEmpty ? description : null,
-        image: image,
+        image: imageUrl ?? '',
         creatorId: currentUser.uid,
         promoted: promoted,
         participantCount: 1,

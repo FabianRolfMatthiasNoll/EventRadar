@@ -1,4 +1,4 @@
-import 'package:event_radar/core/utils/image_placeholder.dart';
+import 'package:event_radar/widgets/avatar_or_placeholder.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
@@ -111,18 +111,10 @@ class EventOverviewScreen extends StatelessWidget {
                 // Top row: event image and name.
                 Row(
                   children: [
-                    CircleAvatar(
+                    AvatarOrPlaceholder(
+                      imageUrl: event.image,
+                      name: event.title,
                       radius: 40,
-                      backgroundImage:
-                          (event.image.isNotEmpty &&
-                                  event.image.startsWith('http'))
-                              ? NetworkImage(event.image)
-                              : null,
-                      child:
-                          (event.image.isEmpty ||
-                                  !event.image.startsWith('http'))
-                              ? Text(getImagePlaceholder(event.title))
-                              : null,
                     ),
                     const SizedBox(width: 16),
                     Expanded(
@@ -205,7 +197,7 @@ class EventOverviewScreen extends StatelessWidget {
                               context,
                               isParticipant,
                               currentUser.uid,
-                          event,
+                              event,
                             )
                             : null,
                     child: Text(

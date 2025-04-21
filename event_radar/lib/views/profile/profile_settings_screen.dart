@@ -1,4 +1,5 @@
 import 'package:event_radar/core/services/auth_service.dart';
+import 'package:event_radar/widgets/avatar_or_placeholder.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -87,17 +88,7 @@ class AvatarWithName extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        CircleAvatar(
-          radius: 40,
-          backgroundImage:
-              (imageUrl.isNotEmpty && imageUrl.startsWith('http'))
-                  ? NetworkImage(imageUrl)
-                  : null,
-          child:
-              (imageUrl.isEmpty || !imageUrl.startsWith('http'))
-                  ? Text(getImagePlaceholder(title))
-                  : null,
-        ),
+        AvatarOrPlaceholder(imageUrl: imageUrl, name: title, radius: 40),
         const SizedBox(width: 16),
         Expanded(
           child: Text(
