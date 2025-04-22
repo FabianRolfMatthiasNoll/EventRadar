@@ -161,6 +161,11 @@ class MyApp extends StatelessWidget {
             color: Theme.of(context).colorScheme.onSurface.withAlpha(140),
           ),
         ),
+        searchBarTheme: SearchBarThemeData(
+          shadowColor: WidgetStateColor.resolveWith(
+            (states) => Colors.transparent,
+          ),
+        ),
       ),
     );
   }
