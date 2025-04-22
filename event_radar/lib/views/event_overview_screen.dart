@@ -1,11 +1,12 @@
 import 'package:event_radar/widgets/avatar_or_placeholder.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
+
 import '../core/models/event.dart';
 import '../core/services/auth_service.dart';
 import '../core/services/event_service.dart';
+import '../core/util/date_time_format.dart';
 import '../widgets/confirm_dialog.dart';
 import '../widgets/main_scaffold.dart';
 import '../widgets/static_map_snippet.dart';
@@ -68,10 +69,6 @@ class EventOverviewScreen extends StatelessWidget {
         ),
       );
     }
-  }
-
-  String formatDateTime(DateTime dt) {
-    return DateFormat('dd.MM.yyyy – HH:mm').format(dt);
   }
 
   @override
