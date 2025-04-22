@@ -81,14 +81,22 @@ flutter:
 flutter_native_splash:
   android: true
   ios: true
-  background_image: lib/core/assets/Branding.png
+  background_image: lib/core/assets/WhiteBackground.png
   image: lib/core/assets/EventRadarLogo.png
   branding: lib/core/assets/Branding.png
+
+  background_image_dark: lib/core/assets/BlackBackground.png
+  image_dark: lib/core/assets/EventRadarLogo.png
+  branding_dark: lib/core/assets/BrandingDark.png
 
   android_12:
     color: "#fdf7fe" #Backgroundcolor when booting
     image: lib/core/assets/EventRadarLogo.png
     branding: lib/core/assets/Branding.png
+
+    color_dark: "#121212" #Backgroundcolor when booting
+    image_dark: lib/core/assets/EventRadarLogo.png
+    branding_dark: lib/core/assets/BrandingDark.png
 
 #flutter_icons is showing the EventRadarLogo on the homescreen
 flutter_icons:
