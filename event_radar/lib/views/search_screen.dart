@@ -94,214 +94,201 @@ class FilterOptionsSelection extends StatefulWidget {
 
 class _FilterOptionsSelectionState extends State<FilterOptionsSelection> {
   int distance = 100;
-  int distance2 = 100;
-  double sliderValue = 100;
-  bool sliderEnabled = false;
-  bool sliderEnabled2 = false;
-  String distanceText = "";
-  DateTime? startAfter;
-  DateTime? startBefore;
-  int? minParticipants;
-  int? maxParticipants;
-  TextEditingController distanceController = TextEditingController();
-  TextEditingController distanceController2 = TextEditingController();
   final double sliderMin = 0.0;
   final double sliderMax = 300;
+  bool sliderEnabled = false;
+  TextEditingController distanceController = TextEditingController();
+
+  DateTime? startAfter;
+  DateTime? endBefore;
+
+  int minParticipants = 0;
+  int maxParticipants = 500;
+  TextEditingController minParticipantsController = TextEditingController();
+  TextEditingController maxParticipantsController = TextEditingController();
+
+  void _distanceTextUpdated(String input) {
+    int? result = int.tryParse(input);
+    if (result == null) {
+      distanceController.text = input.replaceAll(RegExp(r'\D'), '');
+    } else {
+      setState(() {
+        distance = result;
+      });
+    }
+  }
+
+  void _updateDistance(double value) {
+    setState(() {
+      distance = value.toInt();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    distanceController.text = sliderEnabled ? distance.toString() : '∞';
+    minParticipantsController.text = minParticipants.toString();
+    maxParticipantsController.text = maxParticipants.toString();
+
     return Padding(
       padding: EdgeInsets.all(16),
-      child: Column(
-        children: [
-          ListTile(
-            title: Row(
-              children: [
-                Text('Umkreis: '),
-                Expanded(
-                  child: Builder(
-                    builder: (context) {
-                      distanceController.text =
-                          sliderEnabled ? distance.toString() : '∞';
-                      return TextField(
-                        controller: distanceController,
-                        enabled: sliderEnabled,
-                        keyboardType: TextInputType.number,
-                        onChanged: (value) {
-                          int? result = int.tryParse(value);
-                          if (result == null) {
-                            distanceController.text = value.replaceAll(
-                              RegExp('\\D'),
-                              '',
-                            );
-                          } else {
-                            distance = result;
-                            setState(() {
-                              sliderValue = result.toDouble().clamp(
-                                sliderMin,
-                                sliderMax,
-                              );
-                            });
-                          }
-                        },
-                      );
-                    },
+      child: SingleChildScrollView(
+        child: Column(
+          children: [
+            ListTile(
+              title: Row(
+                children: [
+                  // Slider connected with TextField
+                  Text('Umkreis: '),
+                  Expanded(
+                    child: TextField(
+                      controller: distanceController,
+                      enabled: sliderEnabled,
+                      keyboardType: TextInputType.number,
+                      onChanged: _distanceTextUpdated,
+                    ),
                   ),
-                ),
-                Text(" km"),
-                Checkbox(
-                  value: sliderEnabled,
-                  onChanged: (value) => setState(() => sliderEnabled = value!),
-                ),
-              ],
-            ),
-            subtitle: Slider(
-              min: sliderMin,
-              max: sliderMax,
-              value: sliderValue,
-              onChanged:
-                  sliderEnabled
-                      ? (double value) {
-                        setState(() {
-                          distance = value.toInt();
-                          sliderValue = value;
-                        });
-                      }
-                      : null,
-            ),
-          ),
-          Divider(),
-          Builder(
-            builder: (context) {
-              distanceController2.text =
-                  sliderEnabled2 ? distance2.toString() : '∞';
-              return SliderInput(
-                value: distance2.toDouble(),
-                onChanged: (value) {
-                  setState(() {
-                    distance2 = value.toInt();
-                  });
-                },
-                onChangedNotParseable: (value) {
-                  distanceController2.text = value.replaceAll(
-                    RegExp('\\D'),
-                    '',
-                  );
-                },
-                textController: distanceController2,
-                sliderMinValue: 0.0,
-                sliderMaxValue: 300,
-                enabled: sliderEnabled2,
-                leading: [Text("Umkreis: ")],
-                trailing: [
-                  Text("km"),
+                  Text(" km"),
                   Checkbox(
-                    value: sliderEnabled2,
+                    value: sliderEnabled,
                     onChanged:
-                        (value) => setState(() => sliderEnabled2 = value!),
+                        (value) => setState(() => sliderEnabled = value!),
                   ),
                 ],
-              );
-            },
-          ),
-          Divider(),
-          ListTile(
-            onTap: () {},
-            title: Text('Startet vor'),
-            trailing: TextButton(
-              onPressed: () {},
-              child: Text(
-                startAfter == null
-                    ? 'Datum auswählen'
-                    : formatDateTime(startAfter!),
+              ),
+              subtitle: Slider(
+                min: sliderMin,
+                max: sliderMax,
+                value: distance.toDouble().clamp(sliderMin, sliderMax),
+                onChanged: sliderEnabled ? _updateDistance : null,
               ),
             ),
-          ),
-          ListTile(
-            onTap: () {},
-            title: Text('Startet nach'),
-            trailing: TextButton(
-              onPressed: () {},
-              child: Text(
-                startAfter == null
-                    ? 'Datum auswählen'
-                    : formatDateTime(startAfter!),
-              ),
+            Divider(),
+            DateSelectionTile(
+              date: startAfter,
+              onChanged: (value) => setState(() => startAfter = value),
+              title: Text('Startet nach'),
             ),
+            DateSelectionTile(
+              date: endBefore,
+              onChanged: (value) => setState(() => endBefore = value),
+              title: Text('Endet vor'),
+            ),
+            Divider(),
+            IntegerInputTile(
+              title: Text('Min Teilnehmer'),
+              value: minParticipants,
+              onValueChanged:
+                  (value) => setState(() => minParticipants = value),
+              controller: minParticipantsController,
+            ),
+            IntegerInputTile(
+              title: Text('Max Teilnehmer'),
+              value: maxParticipants,
+              onValueChanged:
+                  (value) => setState(() => maxParticipants = value),
+              controller: maxParticipantsController,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class DateSelectionTile extends StatelessWidget {
+  final DateTime? date;
+  final void Function(DateTime?) onChanged;
+  final Widget? title;
+  const DateSelectionTile({
+    super.key,
+    required this.date,
+    required this.onChanged,
+    this.title,
+  });
+
+  Future<void> _pickDate(BuildContext context) async {
+    DateTime? newDate = await showDatePicker(
+      context: context,
+      initialDate: date ?? DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime(DateTime.now().year + 5),
+    );
+    if (newDate != null) {
+      onChanged(newDate);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      title: Row(
+        children: [
+          Expanded(child: title ?? SizedBox.shrink()),
+          TextButton(
+            onPressed: () => _pickDate(context),
+            child: Text(date == null ? 'Datum auswählen' : formatDate(date!)),
           ),
+          date == null
+              ? SizedBox.shrink()
+              : IconButton(
+                onPressed: () => onChanged(null),
+                icon: Icon(
+                  Icons.backspace_outlined,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+              ),
         ],
       ),
     );
   }
 }
 
-/// A Tile which contains a TextInput and a Slider.
-class SliderInput extends StatelessWidget {
-  final double value;
-
-  /// Called when the Sliders onChanged is called or if a parsable double is input in the Textfield.
-  final void Function(double) onChanged;
-
-  /// Called when the the content of the Textfield changed to something not parseable to double.
-  final void Function(String)? onChangedNotParseable;
-
-  /// Min value of the slider. The actual value can still be lower if put in through the TextField.
-  final double sliderMinValue;
-
-  /// Max value of the slider. The actual value can still be lower if put in through the TextField.
-  final double sliderMaxValue;
-  final List<Widget> leading;
-  final List<Widget> trailing;
-  final bool enabled;
-  final TextEditingController textController;
-
-  const SliderInput({
+class IntegerInputTile extends StatelessWidget {
+  final int value;
+  final void Function(int) onValueChanged;
+  final TextEditingController controller;
+  final Widget? title;
+  const IntegerInputTile({
     super.key,
-    this.sliderMinValue = 0.0,
-    this.sliderMaxValue = 1.0,
     required this.value,
-    required this.onChanged,
-    this.leading = const [],
-    this.trailing = const [],
-    this.enabled = true,
-    required this.textController,
-    this.onChangedNotParseable,
+    required this.onValueChanged,
+    required this.controller,
+    this.title,
   });
 
   @override
   Widget build(BuildContext context) {
-    double sliderValue = value.toDouble().clamp(sliderMinValue, sliderMaxValue);
-    List<Widget> content = [];
-    content.addAll(leading);
-    content.add(
-      Expanded(
-        child: Builder(
-          builder: (context) {
-            return TextField(
-              controller: textController,
-              enabled: enabled,
-              keyboardType: TextInputType.number,
-              onChanged: (value) {
-                double? result = double.tryParse(value);
-                if (result != null) {
-                  onChanged(result);
-                } else if (onChangedNotParseable != null) {
-                  onChangedNotParseable!(value);
-                }
-              },
-            );
-          },
-        ),
-      ),
-    );
-    content.addAll(trailing);
     return ListTile(
-      title: Row(children: content),
-      subtitle: Slider(
-        min: sliderMinValue,
-        max: sliderMaxValue,
-        value: sliderValue,
-        onChanged: enabled ? onChanged : null,
+      title: Row(
+        children: [
+          Expanded(child: title ?? SizedBox.shrink()),
+          IconButton(
+            onPressed: () {
+              int temp = value;
+              onValueChanged(temp - 1);
+            },
+            icon: Icon(Icons.remove),
+          ),
+          SizedBox(
+            width: 48,
+            child: TextField(
+              controller: controller,
+              keyboardType: TextInputType.number,
+              onChanged: (input) {
+                controller.text = input.replaceAll(RegExp(r'\D'), '');
+                onValueChanged(int.tryParse(controller.text) ?? 0);
+              },
+            ),
+          ),
+          IconButton(
+            onPressed: () {
+              int temp = value;
+              onValueChanged(temp + 1);
+            },
+            icon: Icon(Icons.add),
+          ),
+        ],
       ),
     );
   }
