@@ -1,5 +1,6 @@
 import 'package:event_radar/core/services/auth_service.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:go_router/go_router.dart';
 
 class ProfileSettingsScreen extends StatelessWidget {
@@ -19,6 +20,140 @@ class ProfileSettingsScreen extends StatelessWidget {
     }
   }
 
+  Future<void> showChangeEmailDialog(BuildContext context) async {
+    final emailController = TextEditingController();
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('E-Mail ändern'),
+        content: TextField(
+          controller: emailController,
+          decoration: const InputDecoration(
+            labelText: 'Neue E-Mail',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Abbrechen'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                await FirebaseAuth.instance.currentUser
+                    ?.verifyBeforeUpdateEmail(emailController.text.trim());
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('E-Mail erfolgreich geändert.')),
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Fehler: ${e.toString()}')),
+                );
+              }
+            },
+            child: const Text('Speichern'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> showChangePasswordDialog(BuildContext context) async {
+    final passwordController = TextEditingController();
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Passwort ändern'),
+        content: TextField(
+          controller: passwordController,
+          obscureText: true,
+          decoration: const InputDecoration(
+            labelText: 'Neues Passwort',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Abbrechen'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                await FirebaseAuth.instance.currentUser
+                    ?.updatePassword(passwordController.text.trim());
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Passwort erfolgreich geändert.')),
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Fehler: ${e.toString()}')),
+                );
+              }
+            },
+            child: const Text('Speichern'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> showDeleteAccountDialog(BuildContext context) async {
+    final confirmationController = TextEditingController();
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Account löschen'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Geben Sie "Bestätigen" ein, um Ihren Account dauerhaft zu löschen.',
+            ),
+            TextField(
+              controller: confirmationController,
+              decoration: const InputDecoration(
+                labelText: 'Bestätigen',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Abbrechen'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (confirmationController.text.trim().toLowerCase() ==
+                  'bestätigen') {
+                try {
+                  await FirebaseAuth.instance.currentUser?.delete();
+                  Navigator.of(context).pop();
+                  context.go('/login');
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text('Account wurde erfolgreich gelöscht.')),
+                  );
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Fehler: ${e.toString()}')),
+                  );
+                }
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Bestätigung fehlgeschlagen.')),
+                );
+              }
+            },
+            child: const Text('Löschen'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListView(
@@ -26,7 +161,7 @@ class ProfileSettingsScreen extends StatelessWidget {
         InkWell(
           onTap: () {},
           child: Container(
-            padding: EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16),
             child: AvatarWithName(
               title: name ?? '<kein Name>',
               isEditable: true,
@@ -34,26 +169,26 @@ class ProfileSettingsScreen extends StatelessWidget {
           ),
         ),
         ListTile(
-          onTap: () {},
+          onTap: () => showChangeEmailDialog(context),
           leading: const Icon(Icons.mail),
           title: Text(email ?? '<keine Email>'),
         ),
         ListTile(
-          onTap: () {},
+          onTap: () => showChangePasswordDialog(context),
           leading: const Icon(Icons.lock),
-          title: Text('Passwort ändern'),
+          title: const Text('Passwort ändern'),
         ),
         ListTile(
           onTap: () => signOut(context),
-          leading: Icon(Icons.logout),
-          title: Text('Abmelden'),
+          leading: const Icon(Icons.logout),
+          title: const Text('Abmelden'),
         ),
         ListTile(
           textColor: Theme.of(context).colorScheme.error,
           iconColor: Theme.of(context).colorScheme.error,
-          onTap: () {},
-          leading: Icon(Icons.delete),
-          title: Text('Account löschen'),
+          onTap: () => showDeleteAccountDialog(context),
+          leading: const Icon(Icons.delete),
+          title: const Text('Account löschen'),
         ),
       ],
     );
