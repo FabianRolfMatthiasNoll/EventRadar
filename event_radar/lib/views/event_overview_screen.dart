@@ -4,8 +4,10 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../core/models/event.dart';
+import '../core/models/participant.dart';
 import '../core/services/auth_service.dart';
 import '../core/services/event_service.dart';
+import '../core/services/participant_service.dart';
 import '../core/util/date_time_format.dart';
 import '../widgets/confirm_dialog.dart';
 import '../widgets/main_scaffold.dart';
@@ -52,6 +54,34 @@ class EventOverviewScreen extends StatelessWidget {
       ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
+
+  Future<void> _showParticipants(BuildContext ctx, String eventId) async {
+    showModalBottomSheet(
+      context: ctx,
+      builder: (_) => FutureBuilder<List<ParticipantProfile>>(
+        future: ParticipantService.fetch(eventId),
+        builder: (ctx, snap) {
+          if (snap.connectionState != ConnectionState.done) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final list = snap.data ?? [];
+          if (list.isEmpty) {
+            return const Center(child: Text('Keine Teilnehmer.'));
+          }
+          return ListView(
+            children: list.map((p) => ListTile(
+              leading: AvatarOrPlaceholder(
+                  imageUrl: p.photo, name: p.name
+              ),
+              title: Text(p.name),
+              subtitle: Text(p.role),
+            )).toList(),
+          );
+        },
+      ),
+    );
+  }
+
 
   Future<void> _openGoogleMaps(BuildContext context, Event event) async {
     final lat = event.location.latitude;
@@ -150,7 +180,9 @@ class EventOverviewScreen extends StatelessWidget {
                 // Participants.
                 ListTile(
                   leading: const Icon(Icons.people),
-                  title: Text("${event.participantCount} participants"),
+                  title: Text("${event.participantCount} Teilnehmer"),
+                  trailing: const Icon(Icons.arrow_forward_ios),
+                  onTap: () => _showParticipants(context, event.id!),
                 ),
                 // Announcements.
                 if (isParticipant)
