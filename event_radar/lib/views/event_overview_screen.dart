@@ -1,21 +1,20 @@
 import 'package:event_radar/widgets/avatar_or_placeholder.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../core/models/event.dart';
-import '../core/models/participant.dart';
 import '../core/services/auth_service.dart';
 import '../core/services/event_service.dart';
-import '../core/services/participant_service.dart';
 import '../core/util/date_time_format.dart';
+import '../core/viewmodels/event_overview_viewmodel.dart';
 import '../widgets/confirm_dialog.dart';
 import '../widgets/main_scaffold.dart';
 import '../widgets/static_map_snippet.dart';
 
 class EventOverviewScreen extends StatelessWidget {
   final String eventId;
-
   const EventOverviewScreen({super.key, required this.eventId});
 
   Future<void> _toggleParticipation(
@@ -24,16 +23,12 @@ class EventOverviewScreen extends StatelessWidget {
     String userId,
     Event event,
   ) async {
-    final confirmTitle = isParticipant ? "Event verlassen" : "Event beitreten";
-    final confirmContent =
+    final title = isParticipant ? "Event verlassen" : "Event beitreten";
+    final content =
         isParticipant
-            ? "Bist du sicher das du das Event verlassen willst?"
+            ? "Bist du sicher, dass du das Event verlassen willst?"
             : "Möchtest du dich bei diesem Event eintragen?";
-    final confirmed = await showConfirmationDialog(
-      context,
-      confirmTitle,
-      confirmContent,
-    );
+    final confirmed = await showConfirmationDialog(context, title, content);
     if (!confirmed) return;
 
     try {
@@ -41,12 +36,12 @@ class EventOverviewScreen extends StatelessWidget {
         await EventService().leaveEvent(event.id!, userId);
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text("Event verlassen")));
+        ).showSnackBar(const SnackBar(content: Text("Event verlassen")));
       } else {
         await EventService().joinEvent(event.id!, userId);
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text("Event beigetreten")));
+        ).showSnackBar(const SnackBar(content: Text("Event beigetreten")));
       }
     } catch (e) {
       ScaffoldMessenger.of(
@@ -55,44 +50,15 @@ class EventOverviewScreen extends StatelessWidget {
     }
   }
 
-  Future<void> _showParticipants(BuildContext ctx, String eventId) async {
-    showModalBottomSheet(
-      context: ctx,
-      builder: (_) => FutureBuilder<List<ParticipantProfile>>(
-        future: ParticipantService.fetch(eventId),
-        builder: (ctx, snap) {
-          if (snap.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          final list = snap.data ?? [];
-          if (list.isEmpty) {
-            return const Center(child: Text('Keine Teilnehmer.'));
-          }
-          return ListView(
-            children: list.map((p) => ListTile(
-              leading: AvatarOrPlaceholder(
-                  imageUrl: p.photo, name: p.name
-              ),
-              title: Text(p.name),
-              subtitle: Text(p.role),
-            )).toList(),
-          );
-        },
-      ),
-    );
-  }
-
-
   Future<void> _openGoogleMaps(BuildContext context, Event event) async {
     final lat = event.location.latitude;
     final lng = event.location.longitude;
-    final Uri googleUrl = Uri.parse(
+    final url = Uri.parse(
       'https://www.google.com/maps/search/?api=1&query=$lat,$lng',
     );
-    if (await canLaunchUrl(googleUrl)) {
-      await launchUrl(googleUrl);
-    } else {
-      if (!context.mounted) return;
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url);
+    } else if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Google Maps konnte nicht geöffnet werden'),
@@ -103,7 +69,6 @@ class EventOverviewScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Retrieve the current user (synchronously from FirebaseAuth)
     final currentUser = AuthService().currentUser();
 
     return MainScaffold(
@@ -118,20 +83,21 @@ class EventOverviewScreen extends StatelessWidget {
       ],
       body: StreamBuilder<Event>(
         stream: EventService().getEventStream(eventId),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
+        builder: (ctx, snap) {
+          if (snap.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
           }
-          if (snapshot.hasError || !snapshot.hasData) {
-            return Center(child: Text("Fehler beim Laden des Events"));
+          if (snap.hasError || !snap.hasData) {
+            return const Center(child: Text("Fehler beim Laden des Events"));
           }
-          final Event event = snapshot.data!;
-          // Determine if the current user is a participant based on event data.
-          final bool isParticipant =
+
+          final event = snap.data!;
+          final isPart =
               currentUser != null &&
               event.participants.contains(currentUser.uid);
+
           return SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -172,7 +138,7 @@ class EventOverviewScreen extends StatelessWidget {
                             children: [
                               Text("Start: ${formatDateTime(event.startDate)}"),
                               const SizedBox(height: 4),
-                              Text("End: ${formatDateTime(event.endDate!)}"),
+                              Text("Ende:  ${formatDateTime(event.endDate!)}"),
                             ],
                           )
                           : Text(formatDateTime(event.startDate)),
@@ -182,10 +148,53 @@ class EventOverviewScreen extends StatelessWidget {
                   leading: const Icon(Icons.people),
                   title: Text("${event.participantCount} Teilnehmer"),
                   trailing: const Icon(Icons.arrow_forward_ios),
-                  onTap: () => _showParticipants(context, event.id!),
+                  onTap: () {
+                    final vm = context.read<EventOverviewViewModel>();
+                    showModalBottomSheet(
+                      context: context,
+                      builder: (_) {
+                        return ChangeNotifierProvider.value(
+                          value: vm,
+                          child: Consumer<EventOverviewViewModel>(
+                            builder: (ctx, vm, __) {
+                              if (vm.isLoading) {
+                                return const Center(
+                                  child: CircularProgressIndicator(),
+                                );
+                              }
+                              if (vm.error != null) {
+                                return Center(
+                                  child: Text("Fehler: ${vm.error}"),
+                                );
+                              }
+                              if (vm.participants.isEmpty) {
+                                return const Center(
+                                  child: Text("Keine Teilnehmer."),
+                                );
+                              }
+                              return ListView(
+                                children:
+                                    vm.participants.map((p) {
+                                      return ListTile(
+                                        leading: AvatarOrPlaceholder(
+                                          imageUrl: p.photo,
+                                          name: p.name,
+                                        ),
+                                        title: Text(p.name),
+                                        subtitle: Text(p.role),
+                                      );
+                                    }).toList(),
+                              );
+                            },
+                          ),
+                        );
+                      },
+                    );
+                  },
                 ),
-                // Announcements.
-                if (isParticipant)
+
+                // Announcements
+                if (isPart)
                   ListTile(
                     leading: const Icon(Icons.announcement),
                     title: const Text("Announcements"),
@@ -217,21 +226,19 @@ class EventOverviewScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-                // Join/Leave button.
+                // Join/Leave Button
                 Center(
                   child: ElevatedButton(
                     onPressed:
                         currentUser != null
                             ? () => _toggleParticipation(
                               context,
-                              isParticipant,
+                              isPart,
                               currentUser.uid,
                               event,
                             )
                             : null,
-                    child: Text(
-                      isParticipant ? "Event verlassen" : "Event beitreten",
-                    ),
+                    child: Text(isPart ? "Event verlassen" : "Event beitreten"),
                   ),
                 ),
               ],
