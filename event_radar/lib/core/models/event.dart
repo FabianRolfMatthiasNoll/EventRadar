@@ -14,6 +14,8 @@ class Event {
   final int participantCount;
   final List<String> participants;
 
+  static final EventAttributes attr = EventAttributes();
+
   Event({
     this.id,
     required this.title,
@@ -31,20 +33,20 @@ class Event {
 
   Map<String, dynamic> toMap() {
     final map = {
-      'title': title,
-      'date': startDate,
-      'location': location,
-      'visibility': visibility,
-      'description': description,
-      'image': image,
-      'createdAt': DateTime.now(),
-      'creatorId': creatorId,
-      'promoted': promoted,
-      'participantCount': participantCount,
-      'participants': participants,
+      attr.title: title,
+      attr.startDate: startDate,
+      attr.location: location,
+      attr.visibility: visibility,
+      attr.description: description,
+      attr.image: image,
+      attr.createdAt: DateTime.now(),
+      attr.creatorId: creatorId,
+      attr.promoted: promoted,
+      attr.participantCount: participantCount,
+      attr.participants: participants,
     };
     if (endDate != null) {
-      map['endDate'] = endDate;
+      map[attr.endDate] = endDate;
     }
     return map;
   }
@@ -53,20 +55,39 @@ class Event {
     final data = doc.data() as Map<String, dynamic>;
     return Event(
       id: doc.id,
-      title: data['title'] ?? '',
-      startDate: data['date']?.toDate() ?? DateTime.now(),
-      endDate: data['endDate'] != null ? (data['endDate'] as Timestamp).toDate() : null,
-      location: data['location'],
-      visibility: data['visibility'] ?? 'public',
-      description: data['description'],
-      image: data['image'] ?? '',
-      creatorId: data['creatorId'] ?? 'dummyUserId',
-      promoted: data['promoted'] ?? false,
-      participantCount: data['participantCount'] ?? 0,
-      participants: (data['participants'] as List<dynamic>?)
-          ?.map((item) => item.toString())
-          .toList() ??
-          [data['creatorId'] ?? 'dummyUserId'],
+      title: data[attr.title] ?? '',
+      startDate: data[attr.startDate]?.toDate() ?? DateTime.now(),
+      endDate:
+          data[attr.endDate] != null
+              ? (data[attr.endDate] as Timestamp).toDate()
+              : null,
+      location: data[attr.location],
+      visibility: data[attr.visibility] ?? 'public',
+      description: data[attr.description],
+      image: data[attr.image] ?? '',
+      creatorId: data[attr.creatorId] ?? 'dummyUserId',
+      promoted: data[attr.promoted] ?? false,
+      participantCount: data[attr.participantCount] ?? 0,
+      participants:
+          (data[attr.participants] as List<dynamic>?)
+              ?.map((item) => item.toString())
+              .toList() ??
+          [data[attr.creatorId] ?? 'dummyUserId'],
     );
   }
+}
+
+class EventAttributes {
+  final title = 'title';
+  final startDate = 'date';
+  final endDate = 'endDate';
+  final location = 'location';
+  final visibility = 'visibility';
+  final description = 'description';
+  final image = 'image';
+  final createdAt = 'createdAt';
+  final creatorId = 'creatorId';
+  final promoted = 'promoted';
+  final participantCount = 'participantCount';
+  final participants = 'participants';
 }

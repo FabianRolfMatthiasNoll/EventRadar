@@ -1,6 +1,8 @@
 import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+
 import '../models/event.dart';
 
 class EventService {
@@ -64,7 +66,10 @@ class EventService {
         .collection('events')
         .where('participants', arrayContains: uid)
         .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) => Event.fromDocument(doc)).toList());
+        .map(
+          (snapshot) =>
+              snapshot.docs.map((doc) => Event.fromDocument(doc)).toList(),
+        );
   }
 
   Future<List<Event>> getEvents() async {
@@ -73,7 +78,11 @@ class EventService {
   }
 
   Future<List<Event>> getPublicEvents() async {
-    QuerySnapshot snapshot = await _firestore.collection('events').where('visibility', isEqualTo: 'public').get();
+    QuerySnapshot snapshot =
+        await _firestore
+            .collection('events')
+            .where('visibility', isEqualTo: 'public')
+            .get();
     return snapshot.docs.map((doc) => Event.fromDocument(doc)).toList();
   }
 
@@ -111,17 +120,56 @@ class EventService {
     await eventRef.collection('participants').doc(userId).delete();
   }
 
-  Future<List<Event>> searchEvents({
-    String? name,
-    int? distanceMeters = 0,
-    DateTime? startAfter,
-    DateTime? startBefore,
-    int minParticipants = 1,
-    int? maxParticipants,
+  Future<List<Event>> searchEvents(
+    String? name, {
+    FilterOptions filter = const FilterOptions(),
   }) async {
     var events = _firestore.collection('events');
-    var query = events.where('visibility', isEqualTo: 'public');
+    var query = events.where(Event.attr.visibility, isEqualTo: 'public');
+
+    // TODO filter for distance
+
+    if (filter.startAfter != null) {
+      query = query.where(
+        Event.attr.startDate,
+        isGreaterThanOrEqualTo: filter.startAfter,
+      );
+    }
+    if (filter.endBefore != null) {
+      query = query.where(
+        Event.attr.endDate,
+        isLessThanOrEqualTo: filter.endBefore,
+      );
+    }
+    if (filter.maxParticipants != null) {
+      query = query.where(
+        Event.attr.participantCount,
+        isLessThanOrEqualTo: filter.maxParticipants,
+      );
+    }
+    if (filter.minParticipants != null) {
+      query = query.where(
+        Event.attr.participantCount,
+        isGreaterThanOrEqualTo: filter.minParticipants,
+      );
+    }
+
     var snapshot = await query.get();
     return snapshot.docs.map((doc) => Event.fromDocument(doc)).toList();
   }
+}
+
+class FilterOptions {
+  final int? distanceMeters;
+  final DateTime? startAfter;
+  final DateTime? endBefore;
+  final int? minParticipants;
+  final int? maxParticipants;
+  const FilterOptions({
+    this.distanceMeters,
+    this.startAfter,
+    this.endBefore,
+    this.minParticipants,
+    this.maxParticipants,
+  });
 }
