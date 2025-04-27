@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
 import '../models/event.dart';
@@ -118,6 +119,28 @@ class EventService {
       'participantCount': FieldValue.increment(-1),
     });
     await eventRef.collection('participants').doc(userId).delete();
+  }
+
+  Future<void> changeParticipantRole(
+    String eventId,
+    String userId,
+    String newRole,
+  ) async {
+    await _firestore
+        .collection('events')
+        .doc(eventId)
+        .collection('participants')
+        .doc(userId)
+        .update({'role': newRole});
+  }
+
+  Future<void> deleteEvent(String eventId) async {
+    final callable = FirebaseFunctions.instance.httpsCallable('deleteEvent');
+    final result = await callable.call({'eventId': eventId});
+    // the function returns { success: true } on completion
+    if (result.data is Map && (result.data as Map)['success'] != true) {
+      throw Exception("Event deletion failed");
+    }
   }
 
   Future<List<Event>> searchEvents(

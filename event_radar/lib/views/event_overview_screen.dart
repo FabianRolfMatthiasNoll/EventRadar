@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../core/models/event.dart';
+import '../core/models/participant.dart';
 import '../core/services/auth_service.dart';
 import '../core/services/event_service.dart';
 import '../core/util/date_time_format.dart';
@@ -17,36 +18,189 @@ class EventOverviewScreen extends StatelessWidget {
   final String eventId;
   const EventOverviewScreen({super.key, required this.eventId});
 
+  /// Shows a dialog to let the user select a new admin from the provided list of participants.
+  /// Returns the UID of the selected new admin, or null if cancelled.
+  Future<String?> _selectNewAdminDialog(
+    BuildContext context,
+    List<ParticipantProfile> candidates,
+  ) async {
+    return showDialog<String>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text("Neuen Admin auswählen"),
+          content: SizedBox(
+            height: 300,
+            width: 300,
+            child: ListView(
+              children:
+                  candidates.map((p) {
+                    return ListTile(
+                      title: Text(p.name),
+                      onTap: () => Navigator.of(dialogContext).pop(p.uid),
+                    );
+                  }).toList(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              child: const Text("Abbrechen"),
+              onPressed: () => Navigator.of(dialogContext).pop(null),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> _toggleParticipation(
     BuildContext context,
     bool isParticipant,
     String userId,
     Event event,
   ) async {
-    final title = isParticipant ? "Event verlassen" : "Event beitreten";
-    final content =
-        isParticipant
-            ? "Bist du sicher, dass du das Event verlassen willst?"
-            : "Möchtest du dich bei diesem Event eintragen?";
-    final confirmed = await showConfirmationDialog(context, title, content);
-    if (!confirmed) return;
+    final currentUser = AuthService().currentUser();
+    if (currentUser == null) return;
+    final vm = context.read<EventOverviewViewModel>();
+    final bool isAdminUser = vm.participants.any(
+      (participant) =>
+          participant.uid == userId && participant.role == 'organizer',
+    );
 
-    try {
-      if (isParticipant) {
+    if (isParticipant) {
+      // User is attempting to leave the event
+      if (isAdminUser) {
+        // Admin leaving
+        // Count other admins in the event (besides current user)
+        final otherAdmins =
+            vm.participants
+                .where((p) => p.role == 'organizer' && p.uid != userId)
+                .toList();
+        final bool otherAdminsExist = otherAdmins.isNotEmpty;
+        // Count other participants (non-admins)
+        final otherParticipants =
+            vm.participants.where((p) => p.uid != userId).toList();
+        final bool otherParticipantsExist = otherParticipants.isNotEmpty;
+
+        if (otherAdminsExist) {
+          // There are other admins, warn user will lose admin status
+          bool confirmed = await showConfirmationDialog(
+            context,
+            "Event verlassen",
+            "Wenn du dieses Event verlässt, verlierst du deinen Admin-Status.",
+          );
+          if (!confirmed) return;
+          // Proceed to leave normally below
+        } else if (otherParticipantsExist) {
+          // User is the only admin, but there are other participants
+          bool assignConfirmed = await showConfirmationDialog(
+            context,
+            "Event verlassen",
+            "Du bist der einzige Admin. Möchtest du einen anderen Teilnehmer zum Admin machen?",
+          );
+          if (!assignConfirmed) return;
+          // Let user choose a new admin from remaining participants
+          String? newAdminId = await _selectNewAdminDialog(
+            context,
+            otherParticipants,
+          );
+          if (newAdminId == null) {
+            // User cancelled selecting a new admin, do not leave
+            return;
+          }
+          // Promote the selected participant to admin (organizer)
+          try {
+            await EventService().changeParticipantRole(
+              event.id!,
+              newAdminId,
+              'organizer',
+            );
+          } catch (e) {
+            // If assigning new admin fails, show error and abort leaving
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Fehler: Admin konnte nicht übertragen. ($e)'),
+              ),
+            );
+            return;
+          }
+          // Now another admin exists, so current user can leave safely
+          bool confirmed = await showConfirmationDialog(
+            context,
+            "Event verlassen",
+            "Neuer Admin wurde ernannt. Möchtest du das Event jetzt verlassen?",
+          );
+          if (!confirmed) {
+            // If user decides not to leave after all (even after assigning), we might consider reverting the new admin,
+            // but for simplicity we keep the new admin and just abort the leave.
+            return;
+          }
+          // Proceed to leave
+        } else {
+          // User is the last participant (and an admin)
+          bool confirmed = await showConfirmationDialog(
+            context,
+            "Event verlassen",
+            "Du bist der letzte Teilnehmer. Wenn du gehst, wird das Event gelöscht.",
+          );
+          if (!confirmed) return;
+          // Call Cloud Function to delete the event entirely
+          try {
+            await EventService().deleteEvent(event.id!);
+            if (!context.mounted) return;
+            Navigator.of(context).pop(); // leave the event screen
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(const SnackBar(content: Text("Event gelöscht")));
+          } catch (e) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Fehler beim Löschen des Events: $e')),
+            );
+          }
+          return; // We return because event is deleted and user has left (screen popped).
+        }
+      } else {
+        // Normal participant (not admin) leaving
+        bool confirmed = await showConfirmationDialog(
+          context,
+          "Event verlassen",
+          "Bist du sicher, dass du das Event verlassen willst?",
+        );
+        if (!confirmed) return;
+        // Proceed to leave normally
+      }
+
+      // If we reach here, the user has confirmed leaving (and any necessary admin handling done).
+      try {
         await EventService().leaveEvent(event.id!, userId);
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text("Event verlassen")));
-      } else {
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Fehler: Event konnte nicht verlassen werden. ($e)'),
+          ),
+        );
+      }
+    } else {
+      // User is not a participant yet (joining the event)
+      bool confirmed = await showConfirmationDialog(
+        context,
+        "Event beitreten",
+        "Möchtest du dich bei diesem Event eintragen?",
+      );
+      if (!confirmed) return;
+      try {
         await EventService().joinEvent(event.id!, userId);
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text("Event beigetreten")));
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Fehler: Konnte Event nicht beitreten. ($e)')),
+        );
       }
-    } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
@@ -95,7 +249,6 @@ class EventOverviewScreen extends StatelessWidget {
           final isPart =
               currentUser != null &&
               event.participants.contains(currentUser.uid);
-
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -192,7 +345,6 @@ class EventOverviewScreen extends StatelessWidget {
                     );
                   },
                 ),
-
                 // Announcements
                 if (isPart)
                   ListTile(
