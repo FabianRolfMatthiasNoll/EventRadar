@@ -1,16 +1,21 @@
+import 'dart:io';
+
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
 class AuthService {
   User? currentUser() {
     return FirebaseAuth.instance.currentUser;
   }
 
-  Future<RegisterStatus> register(String email, String password, String name) async {
+  Future<RegisterStatus> register(
+    String email,
+    String password,
+    String name,
+  ) async {
     try {
-      var credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+      var credential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(email: email, password: password);
       await credential.user?.updateDisplayName(name);
       return RegisterStatus.success;
     } on FirebaseAuthException catch (e) {
@@ -31,9 +36,15 @@ class AuthService {
     }
   }
 
-  Future<SignInStatus> signInWithEmailPassword(String email, String password) async {
+  Future<SignInStatus> signInWithEmailPassword(
+    String email,
+    String password,
+  ) async {
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(email: email, password: password);
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
       return SignInStatus.success;
     } on FirebaseAuthException catch (e) {
       switch (e.code) {
@@ -56,6 +67,17 @@ class AuthService {
   Future<void> signOut() async {
     await FirebaseAuth.instance.signOut();
   }
+
+  /// Uploads the image to Firebase Storage and returns its download URL.
+  Future<String> uploadProfileImage(File imageFile) async {
+    final user = FirebaseAuth.instance.currentUser;
+    final storageRef = FirebaseStorage.instance.ref().child(
+      'profile_pictures/${user?.uid}.jpg',
+    );
+    final uploadTask = await storageRef.putFile(imageFile);
+    final snapshot = await uploadTask;
+    return await snapshot.ref.getDownloadURL();
+  }
 }
 
 enum RegisterStatus {
@@ -64,7 +86,7 @@ enum RegisterStatus {
   emailAlreadyUsed,
   invalidEmail,
   noInternet,
-  unknownError
+  unknownError,
 }
 
 enum SignInStatus {
@@ -73,5 +95,5 @@ enum SignInStatus {
   wrongPassword,
   invalidEmail,
   noInternet,
-  unknownError
+  unknownError,
 }

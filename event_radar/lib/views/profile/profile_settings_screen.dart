@@ -1,59 +1,102 @@
+import 'dart:async';
+
 import 'package:event_radar/core/services/auth_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
+import '../../core/utils/image_placeholder.dart';
+import '../../core/viewmodels/event_creation_viewmodel.dart';
 import '../../widgets/password_form_field.dart';
 
-class ProfileSettingsScreen extends StatelessWidget {
-  const ProfileSettingsScreen({
-    super.key,
-    required this.name,
-    required this.email,
-  });
+class ProfileSettingsScreen extends StatefulWidget {
+  const ProfileSettingsScreen({super.key});
 
-  final String? name;
-  final String? email;
+  @override
+  _ProfileSettingsScreenState createState() => _ProfileSettingsScreenState();
+}
 
-  void signOut(BuildContext context) async {
-    final shouldSignOut = await showDialog<bool>(
+class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
+  StreamSubscription<User?>? authSubscription;
+  String? name;
+  String? email;
+  String? imageUrl;
+
+  @override
+  void initState() {
+    super.initState();
+    final user = FirebaseAuth.instance.currentUser;
+    name = user?.displayName;
+    email = user?.email;
+    imageUrl = user?.photoURL;
+  }
+
+  //ChangeEmailDialogWindow
+  Future<void> showEditEmailDialog(BuildContext context) async {
+    final emailController = TextEditingController(text: email);
+    await showDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (context) {
         return AlertDialog(
-          title: const Text('Abmelden'),
-          content: const Text('Möchten Sie sich wirklich abmelden?'),
+          title: const Text('E-Mail ändern'),
+          content: TextField(
+            controller: emailController,
+            decoration: const InputDecoration(
+              labelText: 'Neue E-Mail',
+              border: OutlineInputBorder(),
+            ),
+          ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(false), // Cancel
+              onPressed: () => Navigator.of(context).pop(),
               child: const Text('Abbrechen'),
             ),
             ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(true), // Submit
-              style: ElevatedButton.styleFrom(
-                foregroundColor:
-                    Theme.of(context).colorScheme.error, // Red Sign Out
-              ),
-              child: const Text('Abmelden'),
+              onPressed: () async {
+                final newEmail = emailController.text.trim();
+                final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+$');
+                if (!emailRegex.hasMatch(newEmail)) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Bitte geben Sie eine gültige E-Mail-Adresse ein.',
+                      ),
+                    ),
+                  );
+                  return;
+                }
+                try {
+                  final user = FirebaseAuth.instance.currentUser;
+                  await user?.verifyBeforeUpdateEmail(newEmail);
+                  Navigator.of(context).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Ein Verifizierungslink wurde an $newEmail gesendet. Bitte bestätigen Sie Ihre E-Mail-Adresse.',
+                      ),
+                    ),
+                  );
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Fehler: ${e.toString()}')),
+                  );
+                }
+              },
+              child: const Text('Speichern'),
             ),
           ],
         );
       },
     );
-
-    if (shouldSignOut == true) {
-      await AuthService().signOut();
-      if (context.mounted) {
-        context.go('/login');
-      }
-    }
   }
 
+  //ChangePasswordDialogWindow
   Future<void> showChangePasswordDialog(BuildContext context) async {
     final currentPasswordController = TextEditingController();
     final newPasswordController = TextEditingController();
     final confirmPasswordController = TextEditingController();
     bool isCurrentPasswordVerified = false;
-
     await showDialog(
       context: context,
       builder: (context) {
@@ -81,6 +124,10 @@ class ProfileSettingsScreen extends StatelessWidget {
                           ),
                         ]
                         : [
+                          const Text(
+                            'Gib erst dein aktuelles Passwort ein, um ein neues Passwort festzulegen.',
+                          ),
+                          const SizedBox(height: 10),
                           PasswordFormField(
                             controller: currentPasswordController,
                             labelText: 'Aktuelles Passwort',
@@ -88,11 +135,11 @@ class ProfileSettingsScreen extends StatelessWidget {
                           const SizedBox(height: 10),
                           TextButton(
                             onPressed: () {
+                              Navigator.of(context).pop();
                               AuthService().signOut();
                               context.go('/login/reset-password');
-                              Navigator.of(context).pop();
                             },
-                            child: const Text('Passwort vergessen'),
+                            child: const Text('Passwort vergessen?'),
                           ),
                         ],
               ),
@@ -108,8 +155,9 @@ class ProfileSettingsScreen extends StatelessWidget {
                           currentPasswordController.text.trim();
                       try {
                         final user = FirebaseAuth.instance.currentUser;
-                        if (user == null)
+                        if (user == null) {
                           throw Exception('Kein Benutzer angemeldet.');
+                        }
 
                         final credentials = EmailAuthProvider.credential(
                           email: user.email ?? '',
@@ -119,14 +167,17 @@ class ProfileSettingsScreen extends StatelessWidget {
                         setState(() => isCurrentPasswordVerified = true);
                       } catch (e) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Fehler: ${e.toString()}')),
+                          SnackBar(
+                            content: Text(
+                              'Das eingegebene Passwort ist invalide, versuchen Sie es erneut.',
+                            ),
+                          ),
                         );
                       }
                     } else {
                       final newPassword = newPasswordController.text.trim();
                       final confirmPassword =
                           confirmPasswordController.text.trim();
-
                       if (newPassword != confirmPassword) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
@@ -137,7 +188,6 @@ class ProfileSettingsScreen extends StatelessWidget {
                         );
                         return;
                       }
-
                       try {
                         final user = FirebaseAuth.instance.currentUser;
                         await user?.updatePassword(newPassword);
@@ -166,56 +216,42 @@ class ProfileSettingsScreen extends StatelessWidget {
     );
   }
 
-  Future<void> showEditEmailDialog(BuildContext context) async {
-    final emailController = TextEditingController(text: email);
-    await showDialog(
+  //SignOutDialogWindow
+  Future<void> signOut(BuildContext context) async {
+    final shouldSignOut = await showDialog<bool>(
       context: context,
-      builder: (context) {
+      builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('E-Mail ändern'),
-          content: TextField(
-            controller: emailController,
-            decoration: const InputDecoration(
-              labelText: 'Neue E-Mail',
-              border: OutlineInputBorder(),
-            ),
-          ),
+          title: const Text('Abmelden'),
+          content: const Text('Möchten Sie sich wirklich abmelden?'),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () => Navigator.of(context).pop(false),
               child: const Text('Abbrechen'),
             ),
             ElevatedButton(
-              onPressed: () async {
-                final newEmail = emailController.text.trim();
-                try {
-                  final user = FirebaseAuth.instance.currentUser;
-                  await user?.verifyBeforeUpdateEmail(newEmail);
-                  //await user?.updateEmail(newEmail);
-                  Navigator.of(context).pop();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('E-Mail erfolgreich geändert.'),
-                    ),
-                  );
-                } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Fehler: ${e.toString()}')),
-                  );
-                }
-              },
-              child: const Text('Speichern'),
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.error,
+              ),
+              child: const Text('Abmelden'),
             ),
           ],
         );
       },
     );
+    if (shouldSignOut == true) {
+      await AuthService().signOut();
+      if (context.mounted) {
+        context.go('/login');
+      }
+    }
   }
 
+  //DeleteAccountDialogWindow
   Future<void> showDeleteAccountDialog(BuildContext context) async {
     final confirmationController = TextEditingController();
     bool isConfirmed = false;
-
     await showDialog(
       context: context,
       builder: (context) {
@@ -257,13 +293,13 @@ class ProfileSettingsScreen extends StatelessWidget {
                         ),
                       ),
                     ),
-                    autocorrect:
-                        false, // disable autocorrect to avoid underline
+                    autocorrect: false, // to avoid underline while writing
                     enableSuggestions:
-                        false, // disable enableSuggestions to avoid underline
+                        false, // to avoid underline while writing
                     onChanged: (value) {
                       setState(() {
-                        isConfirmed = value.trim() == 'Bestätigen';
+                        isConfirmed =
+                            value.trim().toLowerCase() == 'bestätigen';
                       });
                     },
                   ),
@@ -318,7 +354,12 @@ class ProfileSettingsScreen extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             child: AvatarWithName(
               title: name ?? '<kein Name>',
-              onNameChanged: (newName) {},
+              imageUrl: imageUrl,
+              onNameChanged: (newName) {
+                setState(() {
+                  name = newName;
+                });
+              },
               isEditable: true,
             ),
           ),
@@ -350,33 +391,157 @@ class ProfileSettingsScreen extends StatelessWidget {
   }
 }
 
-class AvatarWithName extends StatelessWidget {
+class AvatarWithName extends StatefulWidget {
   final String title;
-  final String imageUrl;
+  final String? imageUrl;
   final bool isEditable;
-  final ValueChanged<String> onNameChanged; // Callback für Namensänderungen
+  final ValueChanged<String> onNameChanged;
 
   const AvatarWithName({
     super.key,
     required this.title,
-    this.imageUrl = '',
+    this.imageUrl,
     this.isEditable = false,
-    required this.onNameChanged, // Callback als Pflichtparameter
+    required this.onNameChanged,
   });
 
-  String getImagePlaceholder(String name) {
-    final words = name.split(' ').take(2);
-    String initials = '';
-    for (var word in words) {
-      if (word.isNotEmpty) {
-        initials += word[0].toUpperCase();
-      }
-    }
-    return initials;
+  @override
+  _AvatarWithNameState createState() => _AvatarWithNameState();
+}
+
+class _AvatarWithNameState extends State<AvatarWithName> {
+  String currentImageUrl = '';
+
+  @override
+  void initState() {
+    super.initState();
+    currentImageUrl = widget.imageUrl ?? '';
   }
 
+  //ChangeProfilePictureDialogWindow
+  Future<void> updateProfilePicture(BuildContext context) async {
+    final viewModel = Provider.of<EventCreationViewModel>(
+      context,
+      listen: false,
+    );
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Profilbild bearbeiten'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ElevatedButton.icon(
+                icon: const Icon(Icons.image),
+                label: const Text('Galerie'),
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(48),
+                ),
+                onPressed: () async {
+                  await viewModel.pickAndCropImage();
+                  if (viewModel.imageFile != null) {
+                    try {
+                      showDialog(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (BuildContext context) {
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
+                        },
+                      );
+                      final newImageUrl = await AuthService()
+                          .uploadProfileImage(viewModel.imageFile!);
+                      viewModel.imageFile = null;
+                      await FirebaseAuth.instance.currentUser?.updatePhotoURL(
+                        newImageUrl,
+                      );
+                      setState(() {
+                        currentImageUrl = newImageUrl;
+                      });
+                      Navigator.of(context, rootNavigator: true).pop();
+                      Navigator.of(context).pop();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Profilbild erfolgreich geändert.'),
+                        ),
+                      );
+                    } catch (e) {
+                      Navigator.of(context, rootNavigator: true).pop();
+                      Navigator.of(context).pop();
+                      viewModel.imageFile = null;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Fehler: ${e.toString()}')),
+                      );
+                    }
+                  }
+                },
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    child: const Text('Abbrechen'),
+                  ),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      foregroundColor: Theme.of(context).colorScheme.error,
+                      minimumSize: const Size(48, 48),
+                      shape: const CircleBorder(),
+                    ),
+                    onPressed: () async {
+                      try {
+                        showDialog(
+                          context: context,
+                          barrierDismissible: false,
+                          builder: (BuildContext context) {
+                            return const Center(
+                              child: CircularProgressIndicator(),
+                            );
+                          },
+                        );
+                        await FirebaseAuth.instance.currentUser?.updatePhotoURL(
+                          null,
+                        );
+                        setState(() {
+                          currentImageUrl = '';
+                        });
+                        Navigator.of(context, rootNavigator: true).pop();
+                        Navigator.of(context).pop();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Profilbild erfolgreich gelöscht.'),
+                          ),
+                        );
+                      } catch (e) {
+                        Navigator.of(context, rootNavigator: true).pop();
+                        Navigator.of(context).pop();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Fehler: ${e.toString()}')),
+                        );
+                      }
+                    },
+                    child: const Icon(
+                      Icons.delete,
+                    ), // Nur das Icon wird angezeigt
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  //ChangeNameDialogWindow
   Future<void> showEditNameDialog(BuildContext context) async {
-    final nameController = TextEditingController(text: title);
+    final nameController = TextEditingController(text: widget.title);
     await showDialog(
       context: context,
       builder: (context) {
@@ -403,19 +568,24 @@ class AvatarWithName extends StatelessWidget {
                   );
                   return;
                 }
-
+                if (newName.length > 15) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Name darf max. 15 Zeichen enthalten.'),
+                    ),
+                  );
+                  return;
+                }
                 try {
                   final user = FirebaseAuth.instance.currentUser;
                   await user?.updateDisplayName(newName);
-
-                  // Callback auslösen, um den neuen Namen mitzuteilen
-                  onNameChanged(newName);
-
                   Navigator.of(context).pop();
+                  widget.onNameChanged(newName);
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Name erfolgreich geändert.')),
                   );
                 } catch (e) {
+                  Navigator.of(context).pop();
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Fehler: ${e.toString()}')),
                   );
@@ -433,28 +603,39 @@ class AvatarWithName extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        CircleAvatar(
-          radius: 40,
-          backgroundImage:
-              (imageUrl.isNotEmpty && imageUrl.startsWith('http'))
-                  ? NetworkImage(imageUrl)
-                  : null,
-          child:
-              (imageUrl.isEmpty || !imageUrl.startsWith('http'))
-                  ? Text(getImagePlaceholder(title))
-                  : null,
+        GestureDetector(
+          onTap: () => updateProfilePicture(context),
+          child: CircleAvatar(
+            radius: 40,
+            child: ClipOval(
+              child:
+                  currentImageUrl.isNotEmpty
+                      ? Image.network(
+                        currentImageUrl,
+                        fit: BoxFit.cover,
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Center(child: CircularProgressIndicator());
+                        },
+                        errorBuilder:
+                            (context, error, stackTrace) =>
+                                const Center(child: Icon(Icons.error)),
+                      )
+                      : Text(getImagePlaceholder(widget.title)),
+            ),
+          ),
         ),
         const SizedBox(width: 16),
         Expanded(
           child: Text(
-            title,
+            widget.title,
             style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
         ),
-        if (isEditable)
+        if (widget.isEditable)
           IconButton(
             icon: const Icon(Icons.edit),
-            tooltip: 'Change name',
+            tooltip: 'Name ändern',
             onPressed: () => showEditNameDialog(context),
           ),
       ],

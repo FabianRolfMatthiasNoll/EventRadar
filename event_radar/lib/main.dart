@@ -5,22 +5,21 @@ import 'package:event_radar/views/profile/register_screen.dart';
 import 'package:event_radar/views/profile/reset_password_screen.dart';
 import 'package:event_radar/widgets/main_scaffold.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
-import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:go_router/go_router.dart';
-import 'core/models/event.dart';
-import 'core/services/auth_service.dart';
-import 'core/services/event_service.dart';
-import 'firebase_options.dart';
-import 'views/event_list_screen.dart';
-import 'views/event_creation_screen.dart';
-import 'views/event_map_screen.dart';
 import 'package:provider/provider.dart';
+
+import 'core/providers/location_provider.dart';
+import 'core/services/auth_service.dart';
 import 'core/viewmodels/event_creation_viewmodel.dart';
 import 'core/viewmodels/event_list_viewmodel.dart';
 import 'core/viewmodels/event_map_viewmodel.dart';
-import 'core/providers/location_provider.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'firebase_options.dart';
+import 'views/event_creation_screen.dart';
+import 'views/event_list_screen.dart';
+import 'views/event_map_screen.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -56,8 +55,6 @@ Future<void> main() async {
 
 class MyApp extends StatelessWidget {
   MyApp({super.key});
-
-
 
   final _router = GoRouter(
     initialLocation: '/event-list',
@@ -118,10 +115,9 @@ class MyApp extends StatelessWidget {
               GoRoute(
                 path: '/profile-settings',
                 builder: (context, state) {
-                  final user = AuthService().currentUser();
-                  return ProfileSettingsScreen(
-                    email: user?.email,
-                    name: user?.displayName,
+                  return ChangeNotifierProvider(
+                    create: (_) => EventCreationViewModel(),
+                    child: const ProfileSettingsScreen(),
                   );
                 },
                 redirect: (context, state) {
