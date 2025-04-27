@@ -1,5 +1,6 @@
 import 'package:event_radar/core/util/date_time_format.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../core/models/event.dart';
@@ -18,15 +19,16 @@ class SearchScreen extends StatefulWidget {
 
 class _SearchScreen extends State<SearchScreen> {
   List<Event> events = [];
+  FilterOptions filter = FilterOptions();
 
   @override
   Widget build(BuildContext context) {
     final locationProvider = Provider.of<LocationProvider>(context);
     final userPosition = locationProvider.currentPosition;
 
-    EventService().searchEvents().then(
-      (result) => setState(() => events = result),
-    );
+    EventService()
+        .searchEvents(null, filter: filter)
+        .then((result) => setState(() => events = result));
     return ListView.builder(
       itemCount: events.length + 1,
       itemBuilder: (BuildContext context, int index) {
@@ -75,16 +77,23 @@ class _SearchScreen extends State<SearchScreen> {
     );
   }
 
-  void _showFilterSheet(BuildContext context) {
-    showModalBottomSheet(
+  Future<void> _showFilterSheet(BuildContext context) async {
+    FilterOptions? newFilter = await showModalBottomSheet(
       context: context,
-      builder: (context) => FilterOptionsSelection(),
+      isScrollControlled: true,
+      builder: (context) => FilterOptionsSelection(filter: filter),
     );
+    if (newFilter != null) {
+      setState(() {
+        filter = newFilter;
+      });
+    }
   }
 }
 
 class FilterOptionsSelection extends StatefulWidget {
-  const FilterOptionsSelection({super.key});
+  final FilterOptions filter;
+  const FilterOptionsSelection({super.key, required this.filter});
 
   @override
   State<StatefulWidget> createState() {
@@ -93,17 +102,17 @@ class FilterOptionsSelection extends StatefulWidget {
 }
 
 class _FilterOptionsSelectionState extends State<FilterOptionsSelection> {
-  int distance = 100;
+  late int distance = widget.filter.distanceMeters ?? 150;
   final double sliderMin = 0.0;
   final double sliderMax = 300;
-  bool sliderEnabled = false;
+  late bool sliderEnabled = widget.filter.distanceMeters != null;
   TextEditingController distanceController = TextEditingController();
 
-  DateTime? startAfter;
-  DateTime? endBefore;
+  late DateTime? startAfter = widget.filter.startAfter;
+  late DateTime? endBefore = widget.filter.endBefore;
 
-  int minParticipants = 0;
-  int maxParticipants = 500;
+  late int minParticipants = widget.filter.minParticipants ?? 0;
+  late int maxParticipants = widget.filter.maxParticipants ?? 500;
   TextEditingController minParticipantsController = TextEditingController();
   TextEditingController maxParticipantsController = TextEditingController();
 
@@ -132,8 +141,10 @@ class _FilterOptionsSelectionState extends State<FilterOptionsSelection> {
 
     return Padding(
       padding: EdgeInsets.all(16),
+      // Scrollable in case the screen is too small
       child: SingleChildScrollView(
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
               title: Row(
@@ -188,6 +199,34 @@ class _FilterOptionsSelectionState extends State<FilterOptionsSelection> {
               onValueChanged:
                   (value) => setState(() => maxParticipants = value),
               controller: maxParticipantsController,
+            ),
+            SizedBox(height: 16),
+            Row(
+              spacing: 8,
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () => context.pop(),
+                    child: Text('Abbrechen'),
+                  ),
+                ),
+                Expanded(
+                  child: FilledButton(
+                    onPressed: () {
+                      context.pop(
+                        FilterOptions(
+                          distanceMeters: sliderEnabled ? distance : null,
+                          startAfter: startAfter,
+                          endBefore: endBefore,
+                          minParticipants: minParticipants,
+                          maxParticipants: maxParticipants,
+                        ),
+                      );
+                    },
+                    child: Text('Anwenden'),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
