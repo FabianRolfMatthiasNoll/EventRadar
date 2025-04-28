@@ -27,7 +27,7 @@ class _SearchScreen extends State<SearchScreen> {
     final userPosition = locationProvider.currentPosition;
 
     EventService()
-        .searchEvents(null, filter: filter)
+        .searchEvents(null, userPosition, filter: filter)
         .then((result) => setState(() => events = result));
     return ListView.builder(
       itemCount: events.length + 1,
@@ -102,14 +102,14 @@ class FilterOptionsSelection extends StatefulWidget {
 }
 
 class _FilterOptionsSelectionState extends State<FilterOptionsSelection> {
-  late int distance = widget.filter.distanceMeters ?? 150;
+  late int distance = widget.filter.distanceKilometers ?? 150;
   final double sliderMin = 0.0;
   final double sliderMax = 300;
-  late bool sliderEnabled = widget.filter.distanceMeters != null;
+  late bool sliderEnabled = widget.filter.distanceKilometers != null;
   TextEditingController distanceController = TextEditingController();
 
   late DateTime? startAfter = widget.filter.startAfter;
-  late DateTime? endBefore = widget.filter.endBefore;
+  late DateTime? endBefore = widget.filter.startBefore;
 
   late int minParticipants = widget.filter.minParticipants ?? 0;
   late int maxParticipants = widget.filter.maxParticipants ?? 500;
@@ -183,7 +183,7 @@ class _FilterOptionsSelectionState extends State<FilterOptionsSelection> {
             DateSelectionTile(
               date: endBefore,
               onChanged: (value) => setState(() => endBefore = value),
-              title: Text('Endet vor'),
+              title: Text('Beginnt vor'),
             ),
             Divider(),
             IntegerInputTile(
@@ -215,9 +215,9 @@ class _FilterOptionsSelectionState extends State<FilterOptionsSelection> {
                     onPressed: () {
                       context.pop(
                         FilterOptions(
-                          distanceMeters: sliderEnabled ? distance : null,
+                          distanceKilometers: sliderEnabled ? distance : null,
                           startAfter: startAfter,
-                          endBefore: endBefore,
+                          startBefore: endBefore,
                           minParticipants: minParticipants,
                           maxParticipants: maxParticipants,
                         ),
@@ -247,11 +247,12 @@ class DateSelectionTile extends StatelessWidget {
   });
 
   Future<void> _pickDate(BuildContext context) async {
+    DateTime now = DateTime.now();
     DateTime? newDate = await showDatePicker(
       context: context,
-      initialDate: date ?? DateTime.now(),
-      firstDate: DateTime.now(),
-      lastDate: DateTime(DateTime.now().year + 5),
+      initialDate: date ?? now,
+      firstDate: DateTime(now.year - 1),
+      lastDate: DateTime(now.year + 5),
     );
     if (newDate != null) {
       onChanged(newDate);
