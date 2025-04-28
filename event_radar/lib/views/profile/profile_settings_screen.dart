@@ -1,13 +1,13 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:event_radar/core/services/auth_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 
+import '../../core/utils/image_picker.dart';
 import '../../core/utils/image_placeholder.dart';
-import '../../core/viewmodels/event_creation_viewmodel.dart';
 import '../../widgets/password_form_field.dart';
 
 class ProfileSettingsScreen extends StatefulWidget {
@@ -420,10 +420,6 @@ class _AvatarWithNameState extends State<AvatarWithName> {
 
   //ChangeProfilePictureDialogWindow
   Future<void> updateProfilePicture(BuildContext context) async {
-    final viewModel = Provider.of<EventCreationViewModel>(
-      context,
-      listen: false,
-    );
     await showDialog(
       context: context,
       builder: (context) {
@@ -439,8 +435,8 @@ class _AvatarWithNameState extends State<AvatarWithName> {
                   minimumSize: const Size.fromHeight(48),
                 ),
                 onPressed: () async {
-                  await viewModel.pickAndCropImage();
-                  if (viewModel.imageFile != null) {
+                  File image = await pickAndCropImage();
+                  if (image != File('')) {
                     try {
                       showDialog(
                         context: context,
@@ -452,8 +448,8 @@ class _AvatarWithNameState extends State<AvatarWithName> {
                         },
                       );
                       final newImageUrl = await AuthService()
-                          .uploadProfileImage(viewModel.imageFile!);
-                      viewModel.imageFile = null;
+                          .uploadProfileImage(image);
+                      image = File('');
                       await FirebaseAuth.instance.currentUser?.updatePhotoURL(
                         newImageUrl,
                       );
@@ -470,7 +466,7 @@ class _AvatarWithNameState extends State<AvatarWithName> {
                     } catch (e) {
                       Navigator.of(context, rootNavigator: true).pop();
                       Navigator.of(context).pop();
-                      viewModel.imageFile = null;
+                      image = File('');
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text('Fehler: ${e.toString()}')),
                       );
