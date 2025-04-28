@@ -145,14 +145,29 @@ class EventService {
       Event.attr.participantCount,
       isLessThanOrEqualTo: filter.maxParticipants,
     );
-    // a value to reuse the index which includes participants
+    // force a value to reuse the index which includes participants
     query = query.where(
       Event.attr.participantCount,
       isGreaterThanOrEqualTo: filter.minParticipants ?? 0,
     );
 
     var snapshot = await query.get();
-    return snapshot.docs.map((doc) => Event.fromDocument(doc)).toList();
+    var docs = snapshot.docs.map((doc) => Event.fromDocument(doc));
+
+    if (filter.distanceKilometers != null && currentPosition != null) {
+      docs = docs.where((e) {
+        return filter.distanceKilometers! >=
+            Geolocator.distanceBetween(
+                  e.location.latitude,
+                  e.location.longitude,
+                  currentPosition.latitude,
+                  currentPosition.longitude,
+                ) /
+                1000;
+      });
+    }
+
+    return docs.toList();
   }
 }
 
