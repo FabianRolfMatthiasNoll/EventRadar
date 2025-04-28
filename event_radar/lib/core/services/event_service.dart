@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
 import '../models/event.dart';
@@ -119,6 +120,22 @@ class EventService {
       'participantCount': FieldValue.increment(-1),
     });
     await eventRef.collection('participants').doc(userId).delete();
+  }
+
+  Future<void> updateEvent(String eventId, Map<String, dynamic> data) {
+    return _firestore.collection('events').doc(eventId).update(data);
+  }
+
+  Future<void> logEventChange(String eventId, Map<String, dynamic> change) {
+    return _firestore
+        .collection('events')
+        .doc(eventId)
+        .collection('messages')
+        .add({
+          ...change,
+          'timestamp': FieldValue.serverTimestamp(),
+          'userId': FirebaseAuth.instance.currentUser?.uid,
+        });
   }
 
   Future<void> changeParticipantRole(
