@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
@@ -12,53 +13,95 @@ import '../services/participant_service.dart';
 class EventOverviewViewModel extends ChangeNotifier {
   final String eventId;
   final EventService _eventService = EventService();
-
-  List<ParticipantProfile> participants = [];
-  bool isLoading = false;
-  String? error;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   Event? event;
   bool isEventLoading = true;
   String? eventError;
 
-  late final StreamSubscription<Event> _eventStreamSub;
+  bool? isOrganizer;
+  bool isCheckingOrganizer = false;
+  String? organizerError;
+
+  List<ParticipantProfile> participants = [];
+  bool isParticipantsLoading = false;
+  String? participantsError;
+
+  late final StreamSubscription<Event> _eventSub;
 
   EventOverviewViewModel(this.eventId) {
-    _loadParticipants();
-    _eventStreamSub = _eventService
-        .getEventStream(eventId)
-        .listen(_handleEventData, onError: _handleEventError);
+    _init();
   }
 
-  void _handleEventData(Event evt) {
+  void _init() {
+    _subscribeEvent();
+    _checkOrganizer();
+    _loadParticipants();
+  }
+
+  void _subscribeEvent() {
+    _eventSub = _eventService
+        .getEventStream(eventId)
+        .listen(_onEventData, onError: _onEventError);
+  }
+
+  void _onEventData(Event evt) {
     event = evt;
     isEventLoading = false;
     notifyListeners();
     _loadParticipants();
   }
 
-  void _handleEventError(Object e) {
+  void _onEventError(Object e) {
     eventError = e.toString();
     isEventLoading = false;
     notifyListeners();
   }
 
-  Future<void> _loadParticipants() async {
-    isLoading = true;
-    error = null;
+  Future<void> _checkOrganizer() async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) {
+      isOrganizer = false;
+      return;
+    }
+    isCheckingOrganizer = true;
     notifyListeners();
-
     try {
-      participants = await ParticipantService.fetch(eventId);
+      final doc =
+          await _firestore
+              .collection('events')
+              .doc(eventId)
+              .collection('participants')
+              .doc(uid)
+              .get();
+      final role = doc.data()?['role'] as String?;
+      isOrganizer = (role == 'organizer');
     } catch (e) {
-      participants = [];
-      error = e.toString();
+      organizerError = e.toString();
+      isOrganizer = false;
     } finally {
-      isLoading = false;
+      isCheckingOrganizer = false;
       notifyListeners();
     }
   }
 
+  Future<void> _loadParticipants() async {
+    isParticipantsLoading = true;
+    participantsError = null;
+    notifyListeners();
+    try {
+      participants = await ParticipantService.fetch(eventId);
+    } catch (e) {
+      participants = [];
+      participantsError = e.toString();
+    } finally {
+      isParticipantsLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // Alle Update-Methoden unverändert:
   Future<void> updateTitle(String newTitle, String oldTitle) async {
     await _eventService.updateEvent(eventId, {'title': newTitle});
     await _eventService.logEventChange(eventId, {
@@ -102,7 +145,6 @@ class EventOverviewViewModel extends ChangeNotifier {
       'oldValue': oldUrl,
       'newValue': newUrl,
     });
-    // TODO: Delete old image upon update
   }
 
   Future<void> updateLocation(LatLng newLoc, LatLng oldLoc) async {
@@ -117,7 +159,7 @@ class EventOverviewViewModel extends ChangeNotifier {
 
   @override
   void dispose() {
-    _eventStreamSub.cancel();
+    _eventSub.cancel();
     super.dispose();
   }
 }

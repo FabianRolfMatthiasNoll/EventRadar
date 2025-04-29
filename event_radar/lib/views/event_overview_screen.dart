@@ -37,23 +37,19 @@ class _EventOverviewContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final vm = context.watch<EventOverviewViewModel>();
 
-    if (vm.isEventLoading || vm.isLoading) {
+    if (vm.isEventLoading) {
       return const Center(child: CircularProgressIndicator());
     }
-    if (vm.eventError != null || vm.error != null || vm.event == null) {
-      final message = vm.eventError ?? vm.error ?? "Unbekannter Fehler";
-      return Center(child: Text("Fehler beim Laden: $message"));
+    if (vm.eventError != null || vm.event == null) {
+      final msg = vm.eventError ?? "Unbekannter Fehler";
+      return Center(child: Text("Fehler beim Laden: $msg"));
     }
 
     final event = vm.event!;
     final currentUser = AuthService().currentUser();
+    final isOrganizer = vm.isOrganizer == true;
     final isParticipant =
         currentUser != null && event.participants.contains(currentUser.uid);
-    final isOrganizer =
-        currentUser != null &&
-        vm.participants.any(
-          (p) => p.uid == currentUser.uid && p.role == "organizer",
-        );
 
     return MainScaffold(
       title: "Event Details",
@@ -317,10 +313,10 @@ class _EventOverviewContent extends StatelessWidget {
               (_) => Padding(
                 padding: const EdgeInsets.all(16),
                 child:
-                    vm.isLoading
+                    vm.isParticipantsLoading
                         ? const Center(child: CircularProgressIndicator())
-                        : vm.error != null
-                        ? Center(child: Text("Fehler: ${vm.error}"))
+                        : vm.participantsError != null
+                        ? Center(child: Text("Fehler: ${vm.participantsError}"))
                         : vm.participants.isEmpty
                         ? const Center(child: Text("Keine Teilnehmer."))
                         : ListView(
