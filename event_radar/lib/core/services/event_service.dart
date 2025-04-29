@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:geolocator/geolocator.dart';
 
 import '../models/event.dart';
 
@@ -160,39 +161,35 @@ class EventService {
     }
   }
 
+  /// For this function to work there needs to be the following index on events:
+  /// (visibility,date,participantCount,__name__).
+  /// If the order or amount of filters are changed the index must be adjusted.
   Future<List<Event>> searchEvents(
-    String? name, {
+    String? name,
+    Position? currentPosition, {
     FilterOptions filter = const FilterOptions(),
   }) async {
     var events = _firestore.collection('events');
     var query = events.where(Event.attr.visibility, isEqualTo: 'public');
 
-    // TODO filter for distance
-
-    if (filter.startAfter != null) {
-      query = query.where(
-        Event.attr.startDate,
-        isGreaterThanOrEqualTo: filter.startAfter,
-      );
-    }
-    if (filter.endBefore != null) {
-      query = query.where(
-        Event.attr.endDate,
-        isLessThanOrEqualTo: filter.endBefore,
-      );
-    }
-    if (filter.maxParticipants != null) {
-      query = query.where(
-        Event.attr.participantCount,
-        isLessThanOrEqualTo: filter.maxParticipants,
-      );
-    }
-    if (filter.minParticipants != null) {
-      query = query.where(
-        Event.attr.participantCount,
-        isGreaterThanOrEqualTo: filter.minParticipants,
-      );
-    }
+    // force a value to reuse index
+    query = query.where(
+      Event.attr.startDate,
+      isGreaterThanOrEqualTo: filter.startAfter ?? DateTime.now(),
+    );
+    query = query.where(
+      Event.attr.startDate,
+      isLessThanOrEqualTo: filter.startBefore,
+    );
+    query = query.where(
+      Event.attr.participantCount,
+      isLessThanOrEqualTo: filter.maxParticipants,
+    );
+    // a value to reuse the index which includes participants
+    query = query.where(
+      Event.attr.participantCount,
+      isGreaterThanOrEqualTo: filter.minParticipants ?? 0,
+    );
 
     var snapshot = await query.get();
     return snapshot.docs.map((doc) => Event.fromDocument(doc)).toList();
@@ -200,15 +197,15 @@ class EventService {
 }
 
 class FilterOptions {
-  final int? distanceMeters;
+  final int? distanceKilometers;
   final DateTime? startAfter;
-  final DateTime? endBefore;
+  final DateTime? startBefore;
   final int? minParticipants;
   final int? maxParticipants;
   const FilterOptions({
-    this.distanceMeters,
+    this.distanceKilometers,
     this.startAfter,
-    this.endBefore,
+    this.startBefore,
     this.minParticipants,
     this.maxParticipants,
   });
