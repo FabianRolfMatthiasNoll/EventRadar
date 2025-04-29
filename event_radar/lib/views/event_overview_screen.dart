@@ -17,6 +17,7 @@ import '../../widgets/date_time_picker.dart';
 import '../../widgets/image_picker.dart';
 import '../../widgets/main_scaffold.dart';
 import '../../widgets/static_map_snippet.dart';
+import 'map_picker_screen.dart';
 
 class EventOverviewScreen extends StatelessWidget {
   final String eventId;
@@ -68,7 +69,7 @@ class _EventOverviewContent extends StatelessWidget {
             _buildParticipantsTile(context, vm, event),
             if (isParticipant) _buildAnnouncementsTile(),
             const SizedBox(height: 16),
-            _buildMap(context, event),
+            _buildMap(context, vm, event, isOrganizer),
             const SizedBox(height: 16),
             _buildJoinLeaveButton(context, vm, event, isParticipant),
           ],
@@ -354,12 +355,62 @@ class _EventOverviewContent extends StatelessWidget {
     );
   }
 
-  Widget _buildMap(BuildContext context, Event event) {
+  Widget _buildMap(
+    BuildContext context,
+    EventOverviewViewModel vm,
+    Event event,
+    bool isOrganizer,
+  ) {
     return Material(
       borderRadius: BorderRadius.circular(12),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () => _openGoogleMaps(context, event),
+        onTap: () async {
+          if (isOrganizer) {
+            final choice = await showDialog<String>(
+              context: context,
+              builder:
+                  (ctx) => SimpleDialog(
+                    title: const Text("Karte"),
+                    children: [
+                      SimpleDialogOption(
+                        onPressed: () => Navigator.of(ctx).pop('open'),
+                        child: const Text("In Google Maps öffnen"),
+                      ),
+                      SimpleDialogOption(
+                        onPressed: () => Navigator.of(ctx).pop('edit'),
+                        child: const Text("Ort bearbeiten"),
+                      ),
+                      SimpleDialogOption(
+                        onPressed: () => Navigator.of(ctx).pop(null),
+                        child: const Text("Abbrechen"),
+                      ),
+                    ],
+                  ),
+            );
+
+            if (choice == "open") {
+              if (!context.mounted) return;
+              _openGoogleMaps(context, event);
+            } else if (choice == "edit") {
+              if (!context.mounted) return;
+              final newLoc = await Navigator.of(context).push<LatLng>(
+                MaterialPageRoute(
+                  fullscreenDialog: true,
+                  builder: (_) => const MapPickerScreen(),
+                ),
+              );
+              if (newLoc != null) {
+                await vm.updateLocation(
+                  newLoc,
+                  LatLng(event.location.latitude, event.location.longitude),
+                );
+              }
+            }
+          } else {
+            _openGoogleMaps(context, event);
+          }
+        },
         child: StaticMapSnippet(
           location: LatLng(event.location.latitude, event.location.longitude),
           width: 600,
