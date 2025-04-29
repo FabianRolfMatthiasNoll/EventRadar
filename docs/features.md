@@ -10,6 +10,8 @@
       - Letzer User -> User wird gewarnt das Event gelöscht wird
       - Letzter Admin aber noch User -> User kann anderen User promoten
       - Nicht letzter Admin -> User wird gewarnt Status zu verlieren
+    - Bearbeitung des Events inPlace als Organisator.
+      - Nutzbarkeit der normalen Features gegeben (Klick auf Map fragt ob in GoogleMaps öffnen oder bearbeiten)
 
 - User Funktionaliäten
     - Erstellung Account
