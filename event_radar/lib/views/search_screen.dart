@@ -20,6 +20,7 @@ class SearchScreen extends StatefulWidget {
 class _SearchScreen extends State<SearchScreen> {
   List<Event> events = [];
   FilterOptions filter = FilterOptions();
+  SortOption sort = SortOption.date;
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +28,12 @@ class _SearchScreen extends State<SearchScreen> {
     final userPosition = locationProvider.currentPosition;
 
     EventService()
-        .searchEvents(null, userPosition, filter: filter)
+        .searchEvents(
+          null,
+          currentPosition: userPosition,
+          sort: sort,
+          filter: filter,
+        )
         .then((result) => setState(() => events = result));
     return ListView.builder(
       itemCount: events.length + 1,
@@ -63,14 +69,28 @@ class _SearchScreen extends State<SearchScreen> {
                   children: [Icon(Icons.filter_alt), Text('Filter')],
                 ),
               ),
-              ElevatedButton(
-                onPressed: () {},
-                child: Row(
-                  spacing: 8,
-                  children: [Icon(Icons.sort), Text('Sort')],
-                ),
+            ],
+          ),
+          SegmentedButton(
+            segments: [
+              ButtonSegment(
+                value: SortOption.date,
+                label: Text('Datum'),
+                icon: Icon(Icons.calendar_today),
+              ),
+              ButtonSegment(
+                value: SortOption.distance,
+                label: Text('Distanz'),
+                icon: Icon(Icons.public),
+              ),
+              ButtonSegment(
+                value: SortOption.participantsAsc,
+                label: Text('Anzahl'),
+                icon: Icon(Icons.groups),
               ),
             ],
+            selected: {sort},
+            onSelectionChanged: (select) => sort = select.first,
           ),
         ],
       ),

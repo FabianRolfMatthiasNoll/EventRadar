@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:collection/collection.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:geolocator/geolocator.dart';
 
@@ -125,9 +126,10 @@ class EventService {
   /// (visibility,date,participantCount,__name__).
   /// If the order or amount of filters are changed the index must be adjusted.
   Future<List<Event>> searchEvents(
-    String? name,
-    Position? currentPosition, {
+    String? name, {
+    Position? currentPosition,
     FilterOptions filter = const FilterOptions(),
+    SortOption sort = SortOption.date,
   }) async {
     var events = _firestore.collection('events');
     var query = events.where(Event.attr.visibility, isEqualTo: 'public');
@@ -166,7 +168,26 @@ class EventService {
                 1000;
       });
     }
-
+    // sorting locally because on firebase it would require an extra index
+    switch (sort) {
+      case SortOption.participantsAsc:
+        return docs.sortedBy((e) => e.participantCount);
+      case SortOption.participantsDesc:
+        return docs.sortedBy((e) => -e.participantCount);
+      case SortOption.distance:
+        if (sort == SortOption.distance && currentPosition != null) {
+          return docs.sortedBy((e) {
+            return Geolocator.distanceBetween(
+              e.location.latitude,
+              e.location.longitude,
+              currentPosition.latitude,
+              currentPosition.longitude,
+            );
+          });
+        }
+      case _:
+        break;
+    }
     return docs.toList();
   }
 }
@@ -185,3 +206,5 @@ class FilterOptions {
     this.maxParticipants,
   });
 }
+
+enum SortOption { distance, date, participantsAsc, participantsDesc }
