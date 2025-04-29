@@ -21,6 +21,7 @@ class _SearchScreen extends State<SearchScreen> {
   List<Event> events = [];
   FilterOptions filter = FilterOptions();
   SortOption sort = SortOption.date;
+  final searchController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +30,7 @@ class _SearchScreen extends State<SearchScreen> {
 
     EventService()
         .searchEvents(
-          null,
+          searchController.text,
           currentPosition: userPosition,
           sort: sort,
           filter: filter,
@@ -53,10 +54,21 @@ class _SearchScreen extends State<SearchScreen> {
         spacing: 8,
         children: [
           SearchBar(
-            onSubmitted: (search) {},
+            controller: searchController,
+            onSubmitted: (_) => FocusManager.instance.primaryFocus?.unfocus(),
             trailing: [
-              IconButton(icon: Icon(Icons.clear), onPressed: () {}),
-              IconButton(icon: Icon(Icons.search), onPressed: () {}),
+              searchController.text != ''
+                  ? IconButton(
+                    icon: Icon(Icons.clear),
+                    onPressed: () {
+                      searchController.text = '';
+                    },
+                  )
+                  : SizedBox.shrink(),
+              IconButton(
+                icon: Icon(Icons.search),
+                onPressed: () => FocusManager.instance.primaryFocus?.unfocus(),
+              ),
             ],
           ),
           Row(
