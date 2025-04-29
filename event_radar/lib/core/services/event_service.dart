@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:collection/collection.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:geolocator/geolocator.dart';
 
@@ -165,9 +166,10 @@ class EventService {
   /// (visibility,date,participantCount,__name__).
   /// If the order or amount of filters are changed the index must be adjusted.
   Future<List<Event>> searchEvents(
-    String? name,
-    Position? currentPosition, {
+    String? searchText, {
+    Position? currentPosition,
     FilterOptions filter = const FilterOptions(),
+    SortOption sort = SortOption.date,
   }) async {
     var events = _firestore.collection('events');
     var query = events.where(Event.attr.visibility, isEqualTo: 'public');
@@ -185,14 +187,53 @@ class EventService {
       Event.attr.participantCount,
       isLessThanOrEqualTo: filter.maxParticipants,
     );
-    // a value to reuse the index which includes participants
+    // force a value to reuse the index which includes participants
     query = query.where(
       Event.attr.participantCount,
       isGreaterThanOrEqualTo: filter.minParticipants ?? 0,
     );
 
     var snapshot = await query.get();
-    return snapshot.docs.map((doc) => Event.fromDocument(doc)).toList();
+    var docs = snapshot.docs.map((doc) => Event.fromDocument(doc));
+
+    if (filter.distanceKilometers != null && currentPosition != null) {
+      docs = docs.where((e) {
+        return filter.distanceKilometers! >=
+            Geolocator.distanceBetween(
+                  e.location.latitude,
+                  e.location.longitude,
+                  currentPosition.latitude,
+                  currentPosition.longitude,
+                ) /
+                1000;
+      });
+    }
+    if (searchText != null && searchText.isNotEmpty) {
+      docs = docs.where(
+        (e) => e.title.toLowerCase().contains(searchText.toLowerCase()),
+      );
+    }
+    // sorting locally because on firebase it would require an extra index
+    switch (sort) {
+      case SortOption.participantsAsc:
+        return docs.sortedBy((e) => e.participantCount);
+      case SortOption.participantsDesc:
+        return docs.sortedBy((e) => -e.participantCount);
+      case SortOption.distance:
+        if (sort == SortOption.distance && currentPosition != null) {
+          return docs.sortedBy((e) {
+            return Geolocator.distanceBetween(
+              e.location.latitude,
+              e.location.longitude,
+              currentPosition.latitude,
+              currentPosition.longitude,
+            );
+          });
+        }
+      case _:
+        break;
+    }
+    return docs.toList();
   }
 }
 
@@ -210,3 +251,5 @@ class FilterOptions {
     this.maxParticipants,
   });
 }
+
+enum SortOption { distance, date, participantsAsc, participantsDesc }
