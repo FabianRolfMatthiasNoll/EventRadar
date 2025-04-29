@@ -351,7 +351,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         InkWell(
           onTap: () {},
           child: Container(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16),
             child: AvatarWithName(
               title: name ?? '<kein Name>',
               imageUrl: imageUrl,
@@ -370,21 +370,21 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
           title: Text(email ?? '<keine Email>'),
         ),
         ListTile(
-          onTap: () => showChangePasswordDialog(context),
+          onTap: () {},
           leading: const Icon(Icons.lock),
-          title: const Text('Passwort ändern'),
+          title: Text('Passwort ändern'),
         ),
         ListTile(
           onTap: () => signOut(context),
-          leading: const Icon(Icons.logout),
-          title: const Text('Abmelden'),
+          leading: Icon(Icons.logout),
+          title: Text('Abmelden'),
         ),
         ListTile(
           textColor: Theme.of(context).colorScheme.error,
           iconColor: Theme.of(context).colorScheme.error,
-          onTap: () => showDeleteAccountDialog(context),
-          leading: const Icon(Icons.delete),
-          title: const Text('Account löschen'),
+          onTap: () {},
+          leading: Icon(Icons.delete),
+          title: Text('Account löschen'),
         ),
       ],
     );
