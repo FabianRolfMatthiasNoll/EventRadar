@@ -282,8 +282,12 @@ class _EventOverviewContent extends StatelessWidget {
                           if (newStart != null && newStart != event.startDate) {
                             vm.updateDate(newStart!, event.startDate);
                           }
-                          if (newEnd != null && newEnd != event.endDate) {
-                            vm.updateEndDate(newEnd!, event.endDate);
+                          if (newEnd != event.endDate) {
+                            if (newEnd != null) {
+                              vm.updateEndDate(newEnd!, event.endDate);
+                            } else {
+                              vm.clearEndDate(event.endDate);
+                            }
                           }
                         },
                         child: const Text("Speichern"),

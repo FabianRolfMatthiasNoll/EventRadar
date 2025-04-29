@@ -138,6 +138,15 @@ class EventOverviewViewModel extends ChangeNotifier {
     });
   }
 
+  Future<void> clearEndDate(DateTime? oldEnd) async {
+    await _eventService.updateEvent(eventId, {'endDate': FieldValue.delete()});
+    await _eventService.logEventChange(eventId, {
+      'type': 'end_date_change',
+      'oldValue': oldEnd?.toIso8601String(),
+      'newValue': null,
+    });
+  }
+
   Future<void> updateImage(String newUrl, String oldUrl) async {
     await _eventService.updateEvent(eventId, {'image': newUrl});
     await _eventService.logEventChange(eventId, {
