@@ -164,7 +164,7 @@ class _DateTimePickerState extends State<DateTimePicker> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        row('${widget.label}', _start, true),
+        row(widget.label, _start, true),
         const SizedBox(height: 16),
         if (_end != null)
           row('Ende:', _end!, false)
