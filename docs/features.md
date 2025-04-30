@@ -18,9 +18,17 @@
     - Anmelden
     - Abmelden
     - Ein- / Ausschreiben bei Events
+    - Nutzung der Karte auch als nicht eingeloggter User
+    - Login status wirkt sich auf alle Bereiche sofort aus.
 
 - Kartenansicht von Events
     - Navigation von Karte zu Event
+    - Liveupdates zu Mitgliedsstatus
+      - Grüne Marker -> Eingetragen
+      - Blaue Marker -> Public Event
+      - Goldene Marker -> Promoted Event
+    - Support für nicht eingeloggte User
+    - User sieht auf Karte seine bereits eingetragenen Events neben den public Events
 
 - Cloud Functions
   - Lädt die Liste der Mitglieder eines Events mit Namen und Rolle sowie Bild
