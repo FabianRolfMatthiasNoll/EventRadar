@@ -143,8 +143,8 @@ class _FilterOptionsSelectionState extends State<FilterOptionsSelection> {
   late DateTime? startAfter = widget.filter.startAfter;
   late DateTime? endBefore = widget.filter.startBefore;
 
-  late int minParticipants = widget.filter.minParticipants ?? 0;
-  late int maxParticipants = widget.filter.maxParticipants ?? 500;
+  late int? minParticipants = widget.filter.minParticipants;
+  late int? maxParticipants = widget.filter.maxParticipants;
   TextEditingController minParticipantsController = TextEditingController();
   TextEditingController maxParticipantsController = TextEditingController();
 
@@ -168,8 +168,8 @@ class _FilterOptionsSelectionState extends State<FilterOptionsSelection> {
   @override
   Widget build(BuildContext context) {
     distanceController.text = sliderEnabled ? distance.toString() : '∞';
-    minParticipantsController.text = minParticipants.toString();
-    maxParticipantsController.text = maxParticipants.toString();
+    minParticipantsController.text = minParticipants?.toString() ?? '';
+    maxParticipantsController.text = maxParticipants?.toString() ?? '';
 
     return Padding(
       padding: EdgeInsets.all(16),
@@ -317,8 +317,8 @@ class DateSelectionTile extends StatelessWidget {
 }
 
 class IntegerInputTile extends StatelessWidget {
-  final int value;
-  final void Function(int) onValueChanged;
+  final int? value;
+  final void Function(int?) onValueChanged;
   final TextEditingController controller;
   final Widget? title;
   const IntegerInputTile({
@@ -337,7 +337,7 @@ class IntegerInputTile extends StatelessWidget {
           Expanded(child: title ?? SizedBox.shrink()),
           IconButton(
             onPressed: () {
-              int temp = value;
+              int temp = value ?? 0;
               onValueChanged(temp - 1);
             },
             icon: Icon(Icons.remove),
@@ -349,13 +349,13 @@ class IntegerInputTile extends StatelessWidget {
               keyboardType: TextInputType.number,
               onChanged: (input) {
                 controller.text = input.replaceAll(RegExp(r'\D'), '');
-                onValueChanged(int.tryParse(controller.text) ?? 0);
+                onValueChanged(int.tryParse(controller.text));
               },
             ),
           ),
           IconButton(
             onPressed: () {
-              int temp = value;
+              int temp = value ?? 0;
               onValueChanged(temp + 1);
             },
             icon: Icon(Icons.add),
