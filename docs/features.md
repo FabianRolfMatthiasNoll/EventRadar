@@ -16,3 +16,8 @@
 - Kartenansicht von Events
     - Navigation von Karte zu Event
 
+- Eventliste / Eventsuche
+    - Suche nach Name
+    - Filter nach Umkreis, Start vor, Start nach, min Teilnehmer, max Teilnehmer
+    - Sortierung nach Entfernung, Datum, Teilnehmer aufsteigend, Teilnehmer absteigend
+
