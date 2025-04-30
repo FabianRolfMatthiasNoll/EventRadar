@@ -1,9 +1,11 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+
 import '../core/models/event.dart';
-import '../core/viewmodels/event_list_viewmodel.dart';
 import '../core/providers/location_provider.dart';
+import '../core/viewmodels/event_list_viewmodel.dart';
 import '../widgets/event_tile.dart';
 import '../widgets/main_scaffold.dart';
 
@@ -16,22 +18,26 @@ class EventListScreen extends StatelessWidget {
     final userPosition = locationProvider.currentPosition;
 
     if (userPosition == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return MainScaffold(
       title: 'Meine Events',
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          context.go('/event-list/create-event');
-        },
-        child: const Icon(Icons.add),
-      ),
+      floatingActionButton:
+          FirebaseAuth.instance.currentUser != null
+              ? FloatingActionButton(
+                onPressed: () {
+                  context.go('/event-list/create-event');
+                },
+                child: const Icon(Icons.add),
+              )
+              : null,
       body: StreamBuilder<List<Event>>(
         stream:
-        Provider.of<EventListViewModel>(context, listen: false).userEventsStream,
+            Provider.of<EventListViewModel>(
+              context,
+              listen: false,
+            ).userEventsStream,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
