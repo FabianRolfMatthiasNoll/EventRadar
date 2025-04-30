@@ -40,14 +40,51 @@ class _SearchScreen extends State<SearchScreen> {
       itemCount: events.length + 1,
       itemBuilder: (BuildContext context, int index) {
         if (index == 0) {
-          return searchAndFilterWidget();
+          return _searchAndFilterWidget();
         }
         return EventTile(event: events[index - 1], userPosition: userPosition);
       },
     );
   }
 
-  Widget searchAndFilterWidget() {
+  Widget _sortOptionWidget(SortOption option) {
+    switch (option) {
+      case SortOption.date:
+        return Text('Datum ');
+      case SortOption.distance:
+        return Text('Entfernung ');
+      case SortOption.participantsAsc:
+        return Row(
+          children: [Text('Teilnehmer '), Icon(Icons.arrow_upward, size: 20)],
+        );
+      case SortOption.participantsDesc:
+        return Row(
+          children: [Text('Teilnehmer '), Icon(Icons.arrow_downward, size: 20)],
+        );
+    }
+  }
+
+  Widget _filterButtonText() {
+    int amountFilter = 0;
+    if (filter.distanceKilometers != null) {
+      amountFilter++;
+    }
+    if (filter.startAfter != null) {
+      amountFilter++;
+    }
+    if (filter.startBefore != null) {
+      amountFilter++;
+    }
+    if (filter.minParticipants != null && filter.minParticipants! > 1) {
+      amountFilter++;
+    }
+    if (filter.maxParticipants != null) {
+      amountFilter++;
+    }
+    return Text('Filter ($amountFilter)');
+  }
+
+  Widget _searchAndFilterWidget() {
     return Container(
       padding: EdgeInsets.all(16),
       child: Column(
@@ -74,35 +111,32 @@ class _SearchScreen extends State<SearchScreen> {
           Row(
             spacing: 8,
             children: [
+              Text('Sortierung:'),
+              DropdownButton(
+                value: sort,
+                items:
+                    SortOption.values.map((option) {
+                      return DropdownMenuItem(
+                        value: option,
+                        child: _sortOptionWidget(option),
+                      );
+                    }).toList(),
+                onChanged: (option) {
+                  if (option != null) {
+                    setState(() {
+                      sort = option;
+                    });
+                  }
+                },
+              ),
               ElevatedButton(
                 onPressed: () => _showFilterSheet(context),
                 child: Row(
                   spacing: 8,
-                  children: [Icon(Icons.filter_alt), Text('Filter')],
+                  children: [Icon(Icons.filter_alt), _filterButtonText()],
                 ),
               ),
             ],
-          ),
-          SegmentedButton(
-            segments: [
-              ButtonSegment(
-                value: SortOption.date,
-                label: Text('Datum'),
-                icon: Icon(Icons.calendar_today),
-              ),
-              ButtonSegment(
-                value: SortOption.distance,
-                label: Text('Distanz'),
-                icon: Icon(Icons.public),
-              ),
-              ButtonSegment(
-                value: SortOption.participantsAsc,
-                label: Text('Anzahl'),
-                icon: Icon(Icons.groups),
-              ),
-            ],
-            selected: {sort},
-            onSelectionChanged: (select) => sort = select.first,
           ),
         ],
       ),
@@ -221,15 +255,21 @@ class _FilterOptionsSelectionState extends State<FilterOptionsSelection> {
             IntegerInputTile(
               title: Text('Min Teilnehmer'),
               value: minParticipants,
-              onValueChanged:
-                  (value) => setState(() => minParticipants = value),
+              onValueChanged: (value) {
+                if (value == null || value >= 0) {
+                  setState(() => minParticipants = value);
+                }
+              },
               controller: minParticipantsController,
             ),
             IntegerInputTile(
               title: Text('Max Teilnehmer'),
               value: maxParticipants,
-              onValueChanged:
-                  (value) => setState(() => maxParticipants = value),
+              onValueChanged: (value) {
+                if (value == null || value >= 0) {
+                  setState(() => maxParticipants = value);
+                }
+              },
               controller: maxParticipantsController,
             ),
             SizedBox(height: 16),
