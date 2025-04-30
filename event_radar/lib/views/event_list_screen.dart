@@ -16,56 +16,81 @@ class EventListScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final locationProvider = Provider.of<LocationProvider>(context);
     final userPosition = locationProvider.currentPosition;
-
     if (userPosition == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    return MainScaffold(
-      title: 'Meine Events',
-      floatingActionButton:
-          FirebaseAuth.instance.currentUser != null
-              ? FloatingActionButton(
-                onPressed: () {
-                  context.go('/event-list/create-event');
-                },
-                child: const Icon(Icons.add),
-              )
-              : null,
-      body: StreamBuilder<List<Event>>(
-        stream:
-            Provider.of<EventListViewModel>(
-              context,
-              listen: false,
-            ).userEventsStream,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(child: Text("Fehler: ${snapshot.error}"));
-          }
-          final events = snapshot.data;
-          if (events == null || events.isEmpty) {
-            return const Center(child: Text("Keine Events gefunden."));
-          }
-          return RefreshIndicator(
-            onRefresh: () async {
-              // Optionally update location here before refreshing, if needed.
-              await locationProvider.updateLocation();
-            },
-            child: ListView.builder(
-              itemCount: events.length,
-              itemBuilder: (BuildContext context, int index) {
-                return EventTile(
-                  event: events[index],
-                  userPosition: userPosition,
-                );
-              },
-            ),
-          );
-        },
-      ),
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, authSnapshot) {
+        final user = authSnapshot.data;
+        final isLoggedIn = user != null;
+
+        return MainScaffold(
+          title: "Meine Events",
+          floatingActionButton:
+              isLoggedIn
+                  ? FloatingActionButton(
+                    onPressed: () => context.go("/event-list/create-event"),
+                    child: const Icon(Icons.add),
+                  )
+                  : null,
+          body:
+              isLoggedIn
+                  ? StreamBuilder<List<Event>>(
+                    stream:
+                        Provider.of<EventListViewModel>(
+                          context,
+                          listen: false,
+                        ).userEventsStream,
+                    builder: (context, snap) {
+                      if (snap.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      if (snap.hasError) {
+                        return Center(child: Text("Fehler: ${snap.error}"));
+                      }
+                      final events = snap.data;
+                      if (events == null || events.isEmpty) {
+                        return const Center(
+                          child: Text("Keine Events gefunden."),
+                        );
+                      }
+                      return RefreshIndicator(
+                        onRefresh: () => locationProvider.updateLocation(),
+                        child: ListView.builder(
+                          itemCount: events.length,
+                          itemBuilder:
+                              (ctx, i) => EventTile(
+                                event: events[i],
+                                userPosition: userPosition,
+                              ),
+                        ),
+                      );
+                    },
+                  )
+                  : Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            "Du hast keine eingetragenen Events. "
+                            "Logge dich ein, um Events zu erstellen oder beizutreten.",
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: () => context.go("/login"),
+                            child: const Text("Einloggen"),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+        );
+      },
     );
   }
 }
