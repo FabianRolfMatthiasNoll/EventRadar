@@ -14,7 +14,7 @@ class ProfileSettingsScreen extends StatefulWidget {
   const ProfileSettingsScreen({super.key});
 
   @override
-  _ProfileSettingsScreenState createState() => _ProfileSettingsScreenState();
+  State<ProfileSettingsScreen> createState() => _ProfileSettingsScreenState();
 }
 
 class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
@@ -30,6 +30,14 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     name = user?.displayName;
     email = user?.email;
     imageUrl = user?.photoURL;
+  }
+
+  bool validateEmail(email) {
+    final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+$');
+    if (!emailRegex.hasMatch(email)) {
+      return true;
+    }
+    return false;
   }
 
   //ChangeEmailDialogWindow
@@ -55,8 +63,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
             ElevatedButton(
               onPressed: () async {
                 final newEmail = emailController.text.trim();
-                final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+$');
-                if (!emailRegex.hasMatch(newEmail)) {
+                if (!validateEmail(newEmail)) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text(
@@ -67,20 +74,25 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                   return;
                 }
                 try {
-                  final user = FirebaseAuth.instance.currentUser;
-                  await user?.verifyBeforeUpdateEmail(newEmail);
-                  Navigator.of(context).pop();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'Ein Verifizierungslink wurde an $newEmail gesendet. Bitte bestätigen Sie Ihre E-Mail-Adresse.',
+                  AuthService().changeUserEmail(newEmail);
+                  if (context.mounted) {
+                    Navigator.of(context).pop();
+                  }
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Ein Verifizierungslink wurde an $newEmail gesendet. Bitte bestätigen Sie Ihre E-Mail-Adresse.',
+                        ),
                       ),
-                    ),
-                  );
+                    );
+                  }
                 } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Fehler: ${e.toString()}')),
-                  );
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Fehler: ${e.toString()}')),
+                    );
+                  }
                 }
               },
               child: const Text('Speichern'),
@@ -136,8 +148,16 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                           TextButton(
                             onPressed: () {
                               Navigator.of(context).pop();
-                              AuthService().signOut();
-                              context.go('/login/reset-password');
+                              AuthService().resetPassword(email!);
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      'Ein Passwort-Wiederherrstellungslink wurde an $email gesendet.',
+                                    ),
+                                  ),
+                                );
+                              }
                             },
                             child: const Text('Passwort vergessen?'),
                           ),
@@ -153,26 +173,20 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                     if (!isCurrentPasswordVerified) {
                       final currentPassword =
                           currentPasswordController.text.trim();
-                      try {
-                        final user = FirebaseAuth.instance.currentUser;
-                        if (user == null) {
-                          throw Exception('Kein Benutzer angemeldet.');
-                        }
-
-                        final credentials = EmailAuthProvider.credential(
-                          email: user.email ?? '',
-                          password: currentPassword,
-                        );
-                        await user.reauthenticateWithCredential(credentials);
+                      if (await AuthService().validatePassword(
+                        currentPassword,
+                      )) {
                         setState(() => isCurrentPasswordVerified = true);
-                      } catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'Das eingegebene Passwort ist invalide, versuchen Sie es erneut.',
+                      } else {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Das eingegebene Passwort ist invalide, versuchen Sie es erneut.',
+                              ),
                             ),
-                          ),
-                        );
+                          );
+                        }
                       }
                     } else {
                       final newPassword = newPasswordController.text.trim();
@@ -191,16 +205,20 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                       try {
                         final user = FirebaseAuth.instance.currentUser;
                         await user?.updatePassword(newPassword);
-                        Navigator.of(context).pop();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Passwort erfolgreich geändert.'),
-                          ),
-                        );
+                        if (context.mounted) {
+                          Navigator.of(context).pop();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Passwort erfolgreich geändert.'),
+                            ),
+                          );
+                        }
                       } catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Fehler: ${e.toString()}')),
-                        );
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Fehler: ${e.toString()}')),
+                          );
+                        }
                       }
                     }
                   },
@@ -315,22 +333,26 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                       isConfirmed
                           ? () async {
                             try {
-                              await FirebaseAuth.instance.currentUser?.delete();
-                              Navigator.of(context).pop();
-                              context.go('/login');
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Account wurde erfolgreich gelöscht.',
+                              AuthService().deleteUser();
+                              if (context.mounted) {
+                                Navigator.of(context).pop();
+                                context.go('/login');
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Account wurde erfolgreich gelöscht.',
+                                    ),
                                   ),
-                                ),
-                              );
+                                );
+                              }
                             } catch (e) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Fehler: ${e.toString()}'),
-                                ),
-                              );
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Fehler: ${e.toString()}'),
+                                  ),
+                                );
+                              }
                             }
                           }
                           : null,
@@ -349,7 +371,6 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     return ListView(
       children: [
         InkWell(
-          onTap: () {},
           child: Container(
             padding: EdgeInsets.all(16),
             child: AvatarWithName(
@@ -370,7 +391,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
           title: Text(email ?? '<keine Email>'),
         ),
         ListTile(
-          onTap: () {},
+          onTap: () => showChangePasswordDialog(context),
           leading: const Icon(Icons.lock),
           title: Text('Passwort ändern'),
         ),
@@ -382,7 +403,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         ListTile(
           textColor: Theme.of(context).colorScheme.error,
           iconColor: Theme.of(context).colorScheme.error,
-          onTap: () {},
+          onTap: () => showDeleteAccountDialog(context),
           leading: Icon(Icons.delete),
           title: Text('Account löschen'),
         ),
@@ -406,7 +427,7 @@ class AvatarWithName extends StatefulWidget {
   });
 
   @override
-  _AvatarWithNameState createState() => _AvatarWithNameState();
+  State<AvatarWithName> createState() => _AvatarWithNameState();
 }
 
 class _AvatarWithNameState extends State<AvatarWithName> {
@@ -435,41 +456,45 @@ class _AvatarWithNameState extends State<AvatarWithName> {
                   minimumSize: const Size.fromHeight(48),
                 ),
                 onPressed: () async {
-                  File image = await pickAndCropImage();
-                  if (image != File('')) {
+                  File? image = await pickAndCropImage();
+                  if (image != null) {
                     try {
-                      showDialog(
-                        context: context,
-                        barrierDismissible: false,
-                        builder: (BuildContext context) {
-                          return const Center(
-                            child: CircularProgressIndicator(),
-                          );
-                        },
-                      );
-                      final newImageUrl = await AuthService()
-                          .uploadProfileImage(image);
-                      image = File('');
-                      await FirebaseAuth.instance.currentUser?.updatePhotoURL(
-                        newImageUrl,
-                      );
+                      if (context.mounted) {
+                        showDialog(
+                          context: context,
+                          barrierDismissible: false,
+                          builder: (BuildContext context) {
+                            return const Center(
+                              child: CircularProgressIndicator(),
+                            );
+                          },
+                        );
+                      }
+                      String newImageUrl = await AuthService()
+                          .uploadAndUpdateProfileImage(image);
+                      image = null;
                       setState(() {
                         currentImageUrl = newImageUrl;
                       });
-                      Navigator.of(context, rootNavigator: true).pop();
-                      Navigator.of(context).pop();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Profilbild erfolgreich geändert.'),
-                        ),
-                      );
+                      if (context.mounted) {
+                        Navigator.of(context, rootNavigator: true).pop();
+                        Navigator.of(context).pop();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Profilbild erfolgreich geändert.'),
+                          ),
+                        );
+                      }
                     } catch (e) {
-                      Navigator.of(context, rootNavigator: true).pop();
-                      Navigator.of(context).pop();
-                      image = File('');
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Fehler: ${e.toString()}')),
-                      );
+                      if (context.mounted) {
+                        image = null;
+                        Navigator.of(context, rootNavigator: true).pop();
+                        Navigator.of(context).pop();
+                        image = File('');
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Fehler: ${e.toString()}')),
+                        );
+                      }
                     }
                   }
                 },
@@ -501,25 +526,27 @@ class _AvatarWithNameState extends State<AvatarWithName> {
                             );
                           },
                         );
-                        await FirebaseAuth.instance.currentUser?.updatePhotoURL(
-                          null,
-                        );
+                        AuthService().deleteProfileImage();
                         setState(() {
                           currentImageUrl = '';
                         });
-                        Navigator.of(context, rootNavigator: true).pop();
-                        Navigator.of(context).pop();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Profilbild erfolgreich gelöscht.'),
-                          ),
-                        );
+                        if (context.mounted) {
+                          Navigator.of(context, rootNavigator: true).pop();
+                          Navigator.of(context).pop();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Profilbild erfolgreich gelöscht.'),
+                            ),
+                          );
+                        }
                       } catch (e) {
-                        Navigator.of(context, rootNavigator: true).pop();
-                        Navigator.of(context).pop();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Fehler: ${e.toString()}')),
-                        );
+                        if (context.mounted) {
+                          Navigator.of(context, rootNavigator: true).pop();
+                          Navigator.of(context).pop();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Fehler: ${e.toString()}')),
+                          );
+                        }
                       }
                     },
                     child: const Icon(
@@ -573,18 +600,23 @@ class _AvatarWithNameState extends State<AvatarWithName> {
                   return;
                 }
                 try {
-                  final user = FirebaseAuth.instance.currentUser;
-                  await user?.updateDisplayName(newName);
-                  Navigator.of(context).pop();
+                  AuthService().changeUsername(newName);
                   widget.onNameChanged(newName);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Name erfolgreich geändert.')),
-                  );
+                  if (context.mounted) {
+                    Navigator.of(context).pop();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Name erfolgreich geändert.'),
+                      ),
+                    );
+                  }
                 } catch (e) {
-                  Navigator.of(context).pop();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Fehler: ${e.toString()}')),
-                  );
+                  if (context.mounted) {
+                    Navigator.of(context).pop();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Fehler: ${e.toString()}')),
+                    );
+                  }
                 }
               },
               child: const Text('Speichern'),
@@ -599,7 +631,7 @@ class _AvatarWithNameState extends State<AvatarWithName> {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        GestureDetector(
+        InkWell(
           onTap: () => updateProfilePicture(context),
           child: CircleAvatar(
             radius: 40,

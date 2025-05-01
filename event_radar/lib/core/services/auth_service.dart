@@ -68,15 +68,71 @@ class AuthService {
     await FirebaseAuth.instance.signOut();
   }
 
-  /// Uploads the image to Firebase Storage and returns its download URL.
-  Future<String> uploadProfileImage(File imageFile) async {
+  //Sends a password reset email to the specified email address.
+  Future<PasswordResetStatus> resetPassword(String email) async {
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+      return PasswordResetStatus.success;
+    } on FirebaseAuthException catch (e) {
+      switch (e.code) {
+        case 'user-not-found':
+          return PasswordResetStatus.userNotFound;
+        case 'invalid-email':
+          return PasswordResetStatus.invalidEmail;
+        case 'network-request-failed':
+          return PasswordResetStatus.noInternet;
+        default:
+          return PasswordResetStatus.unknownError;
+      }
+    } catch (e) {
+      return PasswordResetStatus.unknownError;
+    }
+  }
+
+  Future<bool> validatePassword(currentPassword) async {
+    try {
+      final user = currentUser();
+      if (user == null) {
+        throw Exception('Kein Benutzer angemeldet.');
+      }
+      final credentials = EmailAuthProvider.credential(
+        email: user.email ?? '',
+        password: currentPassword,
+      );
+      await user.reauthenticateWithCredential(credentials);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<void> changeUsername(newName) async {
+    final user = currentUser();
+    await user?.updateDisplayName(newName);
+  }
+
+  Future<void> changeUserEmail(newEmail) async {
+    final user = currentUser();
+    await user?.verifyBeforeUpdateEmail(newEmail);
+  }
+
+  Future<void> deleteUser() async {
+    await FirebaseAuth.instance.currentUser?.delete();
+  }
+
+  Future<String> uploadAndUpdateProfileImage(File imageFile) async {
     final user = FirebaseAuth.instance.currentUser;
     final storageRef = FirebaseStorage.instance.ref().child(
       'profile_pictures/${user?.uid}.jpg',
     );
-    final uploadTask = await storageRef.putFile(imageFile);
-    final snapshot = await uploadTask;
-    return await snapshot.ref.getDownloadURL();
+    final snapShot = await storageRef.putFile(imageFile);
+    final newImageUrl = await snapShot.ref.getDownloadURL();
+    await FirebaseAuth.instance.currentUser?.updatePhotoURL(newImageUrl);
+    return newImageUrl;
+  }
+
+  Future<void> deleteProfileImage() async {
+    await FirebaseAuth.instance.currentUser?.updatePhotoURL(null);
   }
 }
 
@@ -93,6 +149,14 @@ enum SignInStatus {
   success,
   userNotFound,
   wrongPassword,
+  invalidEmail,
+  noInternet,
+  unknownError,
+}
+
+enum PasswordResetStatus {
+  success,
+  userNotFound,
   invalidEmail,
   noInternet,
   unknownError,
