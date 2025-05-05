@@ -1,5 +1,6 @@
 import 'package:event_radar/core/util/date_time_format.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -21,13 +22,15 @@ class _SearchScreen extends State<SearchScreen> {
   List<Event> events = [];
   FilterOptions filter = FilterOptions();
   SortOption sort = SortOption.date;
+  Position? userPosition;
   final searchController = TextEditingController();
 
-  @override
-  Widget build(BuildContext context) {
-    final locationProvider = Provider.of<LocationProvider>(context);
-    final userPosition = locationProvider.currentPosition;
+  _SearchScreen() {
+    _updateSearch();
+    searchController.addListener(_updateSearch);
+  }
 
+  void _updateSearch() {
     EventService()
         .searchEvents(
           searchController.text,
@@ -36,6 +39,18 @@ class _SearchScreen extends State<SearchScreen> {
           filter: filter,
         )
         .then((result) => setState(() => events = result));
+  }
+
+  @override
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    userPosition = Provider.of<LocationProvider>(context).currentPosition;
+
     return ListView.builder(
       itemCount: events.length + 1,
       itemBuilder: (BuildContext context, int index) {
@@ -75,7 +90,7 @@ class _SearchScreen extends State<SearchScreen> {
     if (filter.startBefore != null) {
       amountFilter++;
     }
-    if (filter.minParticipants != null && filter.minParticipants! > 1) {
+    if (filter.minParticipants != null) {
       amountFilter++;
     }
     if (filter.maxParticipants != null) {
@@ -126,6 +141,7 @@ class _SearchScreen extends State<SearchScreen> {
                     setState(() {
                       sort = option;
                     });
+                    _updateSearch();
                   }
                 },
               ),
@@ -153,6 +169,7 @@ class _SearchScreen extends State<SearchScreen> {
       setState(() {
         filter = newFilter;
       });
+      _updateSearch();
     }
   }
 }
@@ -197,6 +214,14 @@ class _FilterOptionsSelectionState extends State<FilterOptionsSelection> {
     setState(() {
       distance = value.toInt();
     });
+  }
+
+  @override
+  void dispose() {
+    distanceController.dispose();
+    minParticipantsController.dispose();
+    maxParticipantsController.dispose();
+    super.dispose();
   }
 
   @override
