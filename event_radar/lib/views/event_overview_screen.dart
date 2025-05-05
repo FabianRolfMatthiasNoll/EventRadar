@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -63,7 +64,7 @@ class _EventOverviewContent extends StatelessWidget {
             _buildDescription(context, vm, event, isOrganizer),
             _buildDateTile(context, vm, event, isOrganizer),
             _buildParticipantsTile(context, vm, event),
-            if (isParticipant) _buildAnnouncementsTile(),
+            if (isParticipant) _buildAnnouncementsTile(context),
             const SizedBox(height: 16),
             _buildMap(context, vm, event, isOrganizer),
             const SizedBox(height: 16),
@@ -344,13 +345,14 @@ class _EventOverviewContent extends StatelessWidget {
     );
   }
 
-  Widget _buildAnnouncementsTile() {
+  Widget _buildAnnouncementsTile(BuildContext context) {
+    final vm = context.read<EventOverviewViewModel>();
     return ListTile(
       leading: const Icon(Icons.announcement),
       title: const Text('Announcements'),
       trailing: const Icon(Icons.arrow_forward_ios),
       onTap: () {
-        // TODO: Navigate to announcements.
+        context.push('/event-overview/${vm.event!.id}/announcements');
       },
     );
   }
