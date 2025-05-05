@@ -1,19 +1,14 @@
-import 'package:event_radar/core/utils/image_placeholder.dart';
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../core/models/event.dart';
 import '../core/viewmodels/event_list_viewmodel.dart';
 import '../core/providers/location_provider.dart';
+import '../widgets/event_tile.dart';
 import '../widgets/main_scaffold.dart';
 
 class EventListScreen extends StatelessWidget {
   const EventListScreen({super.key});
-
-  String formatDateTime(DateTime dt) =>
-      DateFormat('dd.MM.yyyy – HH:mm').format(dt);
 
   @override
   Widget build(BuildContext context) {
@@ -55,54 +50,10 @@ class EventListScreen extends StatelessWidget {
             },
             child: ListView.builder(
               itemCount: events.length,
-              itemBuilder: (context, index) {
-                final event = events[index];
-                final double distance = Geolocator.distanceBetween(
-                    userPosition.latitude,
-                    userPosition.longitude,
-                    event.location.latitude,
-                    event.location.longitude) /
-                    1000.0;
-                // Build a subtitle that shows start date, and if applicable the end date on a separate line.
-                Widget dateInfo;
-                if (event.endDate != null) {
-                  dateInfo = Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text("${formatDateTime(event.startDate)} bis ${formatDateTime(event.endDate!)}",
-                          style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                    ],
-                  );
-                } else {
-                  dateInfo = Text(
-                    formatDateTime(event.startDate),
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
-                  );
-                }
-                return ListTile(
-                  leading: CircleAvatar(
-                    backgroundImage: (event.image.isNotEmpty &&
-                        event.image.startsWith('http'))
-                        ? NetworkImage(event.image)
-                        : null,
-                    child: (event.image.isEmpty || !event.image.startsWith('http'))
-                        ? Text(getImagePlaceholder(event.title))
-                        : null,
-                  ),
-                  title: Text(event.title),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      dateInfo,
-                      Text(
-                        "${event.participantCount} Teilnehmer • ${distance.toStringAsFixed(1)} km",
-                        style: const TextStyle(fontSize: 12, color: Colors.grey),
-                      ),
-                    ],
-                  ),
-                  onTap: () {
-                    context.push('/event-overview/${event.id}');
-                  },
+              itemBuilder: (BuildContext context, int index) {
+                return EventTile(
+                  event: events[index],
+                  userPosition: userPosition,
                 );
               },
             ),

@@ -3,14 +3,13 @@ import 'package:event_radar/views/profile/login_screen.dart';
 import 'package:event_radar/views/profile/profile_settings_screen.dart';
 import 'package:event_radar/views/profile/register_screen.dart';
 import 'package:event_radar/views/profile/reset_password_screen.dart';
+import 'package:event_radar/views/search_screen.dart';
 import 'package:event_radar/widgets/main_scaffold.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:go_router/go_router.dart';
-import 'core/models/event.dart';
 import 'core/services/auth_service.dart';
-import 'core/services/event_service.dart';
 import 'firebase_options.dart';
 import 'views/event_list_screen.dart';
 import 'views/event_creation_screen.dart';
@@ -56,8 +55,6 @@ Future<void> main() async {
 
 class MyApp extends StatelessWidget {
   MyApp({super.key});
-
-
 
   final _router = GoRouter(
     initialLocation: '/event-list',
@@ -106,9 +103,7 @@ class MyApp extends StatelessWidget {
             routes: [
               GoRoute(
                 path: '/search',
-                builder:
-                    (context, state) =>
-                        Center(child: Text('Not Implemented yet.')),
+                builder: (context, state) => SearchScreen(),
               ),
             ],
           ),
@@ -157,6 +152,21 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(routerConfig: _router);
+    return MaterialApp.router(
+      routerConfig: _router,
+      theme: ThemeData(
+        listTileTheme: ListTileThemeData(
+          subtitleTextStyle: TextStyle(
+            fontSize: 12,
+            color: Theme.of(context).colorScheme.onSurface.withAlpha(140),
+          ),
+        ),
+        searchBarTheme: SearchBarThemeData(
+          shadowColor: WidgetStateColor.resolveWith(
+            (states) => Colors.transparent,
+          ),
+        ),
+      ),
+    );
   }
 }

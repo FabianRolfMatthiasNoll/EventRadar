@@ -1,4 +1,4 @@
-import 'package:event_radar/core/utils/image_placeholder.dart';
+import 'package:event_radar/widgets/avatar_or_placeholder.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -26,35 +26,35 @@ class EventMapScreen extends StatelessWidget {
       );
     }).toSet();
   }
+
   void _showEventDetails(BuildContext context, Event event, int index) {
     showModalBottomSheet(
       context: context,
-      builder: (context) => Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: CircleAvatar(
-                backgroundImage: (event.image.isNotEmpty && event.image.startsWith('http'))
-                    ? NetworkImage(event.image)
-                    : null,
-                child: (event.image.isEmpty || !event.image.startsWith('http'))
-                    ? Text(getImagePlaceholder(event.title))
-                    : null,
-              ),
-              title: Text(event.title),
-              subtitle: Text(event.description ?? 'Keine Beschreibung vorhanden'),
+      builder:
+          (context) => Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: AvatarOrPlaceholder(
+                    imageUrl: event.image,
+                    name: event.title,
+                  ),
+                  title: Text(event.title),
+                  subtitle: Text(
+                    event.description ?? 'Keine Beschreibung vorhanden',
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    context.push('/event-overview/${event.id}');
+                  },
+                  child: const Text("Zum Event"),
+                ),
+              ],
             ),
-            ElevatedButton(
-              onPressed: () {
-                context.push('/event-overview/${event.id}');
-              },
-              child: const Text("Zum Event"),
-            ),
-          ],
-        ),
-      ),
+          ),
     );
   }
 
