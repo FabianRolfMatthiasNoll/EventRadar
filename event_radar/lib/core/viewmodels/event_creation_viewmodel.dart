@@ -1,16 +1,15 @@
 import 'dart:io';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:image_cropper/image_cropper.dart';
+
 import '../models/event.dart';
 import '../services/auth_service.dart';
 import '../services/event_service.dart';
 
 class EventCreationViewModel extends ChangeNotifier {
   final EventService _eventService = EventService();
-  final ImagePicker _picker = ImagePicker();
 
   bool isLoading = false;
 
@@ -28,33 +27,6 @@ class EventCreationViewModel extends ChangeNotifier {
 
   bool validate() {
     return title.isNotEmpty && dateTime != null && location != null;
-  }
-
-  Future<void> pickAndCropImage() async {
-    final XFile? pickedFile = await _picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 50,
-    );
-    if (pickedFile != null) {
-      CroppedFile? croppedFile = await ImageCropper().cropImage(
-        sourcePath: pickedFile.path,
-        uiSettings: [
-          AndroidUiSettings(
-            toolbarTitle: 'Crop Image',
-            toolbarColor: Colors.blueGrey,
-            toolbarWidgetColor: Colors.white,
-            initAspectRatio: CropAspectRatioPreset.square,
-            hideBottomControls: true,
-            lockAspectRatio: true,
-            aspectRatioPresets: [CropAspectRatioPreset.square],
-          ),
-        ],
-      );
-      if (croppedFile != null) {
-        imageFile = File(croppedFile.path);
-        notifyListeners();
-      }
-    }
   }
 
   Future<String> createEvent() async {
