@@ -64,7 +64,12 @@ class _AnnouncementChatContent extends StatelessWidget {
                       final isMe =
                           message.senderId ==
                           FirebaseAuth.instance.currentUser?.uid;
-                      return ChatBubble(message: message, isMe: isMe);
+                      final profile = vm.participantMap[message.senderId];
+                      return ChatBubble(
+                        message: message,
+                        isMe: isMe,
+                        senderProfile: profile,
+                      );
                     },
                   );
                 },

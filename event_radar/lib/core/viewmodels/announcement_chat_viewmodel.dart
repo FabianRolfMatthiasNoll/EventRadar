@@ -5,7 +5,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../models/chat_message.dart';
+import '../models/participant.dart';
 import '../services/chat_service.dart';
+import '../services/participant_service.dart';
 
 class AnnouncementChatViewModel extends ChangeNotifier {
   final String eventId;
@@ -16,6 +18,9 @@ class AnnouncementChatViewModel extends ChangeNotifier {
   bool isOrganizer = false;
   bool isLoading = true;
   String? errorMessage;
+
+  List<ParticipantProfile> participants = [];
+  final Map<String, ParticipantProfile> participantMap = {};
 
   StreamSubscription<List<ChatMessage>>? _messagesSub;
 
@@ -47,6 +52,12 @@ class AnnouncementChatViewModel extends ChangeNotifier {
       isLoading = false;
       notifyListeners();
     }
+
+    participants = await ParticipantService.fetch(eventId);
+    participantMap
+      ..clear()
+      ..addEntries(participants.map((p) => MapEntry(p.uid, p)));
+    notifyListeners();
   }
 
   Future<void> _checkIfOrganizer() async {
