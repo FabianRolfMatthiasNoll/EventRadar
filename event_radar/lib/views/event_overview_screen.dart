@@ -89,8 +89,8 @@ class _EventOverviewContent extends StatelessWidget {
             onTap:
                 isOrganizer
                     ? () async {
-                      final File file = await pickAndCropImage();
-                      if (file.path.isNotEmpty) {
+                      final File? file = await pickAndCropImage();
+                      if (file!.path.isNotEmpty) {
                         final newUrl = await EventService().uploadEventImage(
                           file,
                         );

@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 
-Future<File> pickAndCropImage() async {
+Future<File?> pickAndCropImage() async {
   final ImagePicker picker = ImagePicker();
   final XFile? pickedFile = await picker.pickImage(
     source: ImageSource.gallery,
@@ -29,5 +29,5 @@ Future<File> pickAndCropImage() async {
       return File(croppedFile.path);
     }
   }
-  return File('');
+  return null;
 }
