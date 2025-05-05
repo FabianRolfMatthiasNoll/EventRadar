@@ -25,8 +25,20 @@ class EventCreationViewModel extends ChangeNotifier {
   File? imageFile;
   String? imageUrl;
 
-  bool validate() {
-    return title.isNotEmpty && dateTime != null && location != null;
+  List<String> _missingFields() {
+    final List<String> missing = [];
+    if (title.isEmpty) missing.add('Titel');
+    if (dateTime == null) missing.add('Startdatum');
+    if (location == null) missing.add('Ort');
+    return missing;
+  }
+
+  String _buildErrorMessage(List<String> fields) {
+    if (fields.isEmpty) return '';
+    if (fields.length == 1) return 'Bitte ${fields.first} angeben.';
+    final last = fields.removeLast();
+    final joined = fields.join(', ');
+    return 'Bitte $joined und $last angeben.';
   }
 
   Future<String> createEvent() async {
@@ -35,9 +47,11 @@ class EventCreationViewModel extends ChangeNotifier {
       throw Exception("User not logged in");
     }
 
-    if (!validate()) {
-      return 'Bitte alle Felder ausfüllen.';
+    final missing = _missingFields();
+    if (missing.isNotEmpty) {
+      return _buildErrorMessage(List.from(missing));
     }
+
     isLoading = true;
     notifyListeners();
 
