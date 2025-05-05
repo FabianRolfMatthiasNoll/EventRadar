@@ -72,13 +72,6 @@ class _LoginScreenState extends State<LoginScreen> {
     return null;
   }
 
-  String? _validatePassword(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Bitte Passwort eingeben';
-    }
-    return null;
-  }
-
   void _gotoRegister(BuildContext context) {
     context.go('/login/register');
   }
@@ -113,7 +106,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             PasswordFormField(
               controller: _passwordController,
-              validator: _validatePassword,
+              validator: AuthService().validatePasswordField,
               textInputAction: TextInputAction.next,
             ),
             _isLoading

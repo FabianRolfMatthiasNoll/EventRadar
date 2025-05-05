@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:email_validator/email_validator.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
@@ -106,6 +107,11 @@ class AuthService {
     }
   }
 
+  Future<void> changePassword(newPassword) async {
+    final user = currentUser();
+    await user?.updatePassword(newPassword);
+  }
+
   Future<void> changeUsername(newName) async {
     final user = currentUser();
     await user?.updateDisplayName(newName);
@@ -117,22 +123,58 @@ class AuthService {
   }
 
   Future<void> deleteUser() async {
-    await FirebaseAuth.instance.currentUser?.delete();
+    await currentUser()?.delete();
   }
 
   Future<String> uploadAndUpdateProfileImage(File imageFile) async {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = currentUser();
     final storageRef = FirebaseStorage.instance.ref().child(
       'profile_pictures/${user?.uid}.jpg',
     );
     final snapShot = await storageRef.putFile(imageFile);
     final newImageUrl = await snapShot.ref.getDownloadURL();
-    await FirebaseAuth.instance.currentUser?.updatePhotoURL(newImageUrl);
+    await currentUser()?.updatePhotoURL(newImageUrl);
     return newImageUrl;
   }
 
   Future<void> deleteProfileImage() async {
-    await FirebaseAuth.instance.currentUser?.updatePhotoURL(null);
+    await currentUser()?.updatePhotoURL(null);
+  }
+
+  Future<void> reloadUserData() async {
+    currentUser()?.reload();
+  }
+
+  Future<bool> validateEmail(String email) async {
+    return EmailValidator.validate(email);
+  }
+
+  Future<bool> reauthenticateWithEmail(String password) async {
+    final user = currentUser();
+    if (user == null || user.email == null) {
+      throw Exception('Kein Benutzer angemeldet.');
+    }
+    try {
+      final credential = EmailAuthProvider.credential(
+        email: user.email!,
+        password: password,
+      );
+      await user.reauthenticateWithCredential(credential);
+      return true;
+    } catch (e) {
+      print('Reauthentifizierung fehlgeschlagen: $e');
+      return false;
+    }
+  }
+
+  String? validatePasswordField(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Bitte Passwort eingeben';
+    }
+    if (value.length < 6) {
+      return 'Das Passwort muss mindestens 6 Zeichen lang sein.';
+    }
+    return null;
   }
 }
 

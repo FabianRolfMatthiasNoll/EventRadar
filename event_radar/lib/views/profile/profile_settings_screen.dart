@@ -1,14 +1,14 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:event_radar/core/services/auth_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/utils/image_picker.dart';
-import '../../core/utils/image_placeholder.dart';
+import '../../core/services/shared_preferences_service.dart';
+import '../../widgets/avatar_with_name.dart';
 import '../../widgets/password_form_field.dart';
+import '../../widgets/reauthenticator_dialog.dart';
 
 class ProfileSettingsScreen extends StatefulWidget {
   const ProfileSettingsScreen({super.key});
@@ -18,150 +18,132 @@ class ProfileSettingsScreen extends StatefulWidget {
 }
 
 class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
-  StreamSubscription<User?>? authSubscription;
   String? name;
   String? email;
   String? imageUrl;
+  String? pendingEmail;
 
   @override
   void initState() {
     super.initState();
-    final user = FirebaseAuth.instance.currentUser;
+    final user = AuthService().currentUser();
     name = user?.displayName;
     email = user?.email;
     imageUrl = user?.photoURL;
+    loadEmailFromDevice();
   }
 
-  bool validateEmail(email) {
-    final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+$');
-    if (!emailRegex.hasMatch(email)) {
-      return true;
+  Future<void> loadEmailFromDevice() async {
+    var pendingEmailFromStorage = await SharedPreferencesService.getEmail();
+    if (pendingEmailFromStorage?.toLowerCase() != email?.toLowerCase()) {
+      setState(() {
+        pendingEmail = pendingEmailFromStorage;
+      });
+    } else {
+      SharedPreferencesService.clearEmail();
     }
-    return false;
   }
 
-  //ChangeEmailDialogWindow
-  Future<void> showEditEmailDialog(BuildContext context) async {
-    final emailController = TextEditingController(text: email);
-    await showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('E-Mail ändern'),
-          content: TextField(
-            controller: emailController,
-            decoration: const InputDecoration(
-              labelText: 'Neue E-Mail',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Abbrechen'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final newEmail = emailController.text.trim();
-                if (!validateEmail(newEmail)) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Bitte geben Sie eine gültige E-Mail-Adresse ein.',
-                      ),
-                    ),
-                  );
-                  return;
-                }
-                try {
-                  AuthService().changeUserEmail(newEmail);
-                  if (context.mounted) {
-                    Navigator.of(context).pop();
-                  }
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'Ein Verifizierungslink wurde an $newEmail gesendet. Bitte bestätigen Sie Ihre E-Mail-Adresse.',
-                        ),
-                      ),
-                    );
-                  }
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Fehler: ${e.toString()}')),
-                    );
-                  }
-                }
-              },
-              child: const Text('Speichern'),
-            ),
-          ],
+  Future<void> updateEmail(newEmail) async {
+    await SharedPreferencesService.saveEmail(newEmail);
+    setState(() {
+      pendingEmail = newEmail;
+    });
+  }
+
+  Future<void> refreshUser() async {
+    try {
+      final currentPendingEmail = pendingEmail;
+      await AuthService().currentUser()?.reload();
+      if (currentPendingEmail != null && currentPendingEmail.isNotEmpty) {
+        final updatedUser = AuthService().currentUser();
+        if (updatedUser?.email?.toLowerCase() ==
+            currentPendingEmail.toLowerCase()) {
+          await SharedPreferencesService.clearEmail();
+          setState(() {
+            email = currentPendingEmail;
+            pendingEmail = null;
+          });
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Die Seite wurde aktualisiert')),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        final success = await showDialog(
+          context: context,
+          builder:
+              (context) => ReauthenticatorDialog(
+                user: AuthService().currentUser(),
+                titleText: 'Ihre Sitzung ist abgelaufen',
+                contentText:
+                    'Bitte authentifizieren Sie sich erneut, um fortzufahren.',
+              ),
         );
-      },
-    );
+        if (success) {
+          final currentPendingEmail = pendingEmail;
+          await AuthService().currentUser()?.reload();
+          if (currentPendingEmail != null && currentPendingEmail.isNotEmpty) {
+            final updatedUser = AuthService().currentUser();
+            if (updatedUser?.email?.toLowerCase() ==
+                currentPendingEmail.toLowerCase()) {
+              await SharedPreferencesService.clearEmail();
+              setState(() {
+                email = currentPendingEmail;
+                pendingEmail = null;
+              });
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Die Seite wurde aktualisiert')),
+                );
+              }
+            }
+          }
+        }
+      }
+    }
   }
 
-  //ChangePasswordDialogWindow
-  Future<void> showChangePasswordDialog(BuildContext context) async {
-    final currentPasswordController = TextEditingController();
-    final newPasswordController = TextEditingController();
-    final confirmPasswordController = TextEditingController();
-    bool isCurrentPasswordVerified = false;
+  Future<void> showEditEmailDialog(BuildContext context) async {
+    final emailController = TextEditingController();
+    bool inputWasInvalid = false;
     await showDialog(
       context: context,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: Text(
-                isCurrentPasswordVerified
-                    ? 'Neues Passwort festlegen'
-                    : 'Passwort ändern',
-              ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children:
-                    isCurrentPasswordVerified
-                        ? [
-                          PasswordFormField(
-                            controller: newPasswordController,
-                            labelText: 'Neues Passwort',
-                          ),
-                          const SizedBox(height: 10),
-                          PasswordFormField(
-                            controller: confirmPasswordController,
-                            labelText: 'Neues Passwort bestätigen',
-                          ),
-                        ]
-                        : [
-                          const Text(
-                            'Gib erst dein aktuelles Passwort ein, um ein neues Passwort festzulegen.',
-                          ),
-                          const SizedBox(height: 10),
-                          PasswordFormField(
-                            controller: currentPasswordController,
-                            labelText: 'Aktuelles Passwort',
-                          ),
-                          const SizedBox(height: 10),
-                          TextButton(
-                            onPressed: () {
-                              Navigator.of(context).pop();
-                              AuthService().resetPassword(email!);
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      'Ein Passwort-Wiederherrstellungslink wurde an $email gesendet.',
-                                    ),
-                                  ),
-                                );
-                              }
-                            },
-                            child: const Text('Passwort vergessen?'),
-                          ),
-                        ],
+              title: const Text('E-Mail ändern'),
+              content: TextField(
+                controller: emailController,
+                decoration: InputDecoration(
+                  labelText: 'Neue E-Mail-Adresse',
+                  labelStyle: TextStyle(
+                    color:
+                        inputWasInvalid
+                            ? Theme.of(context).colorScheme.error
+                            : Theme.of(context).textTheme.bodyMedium?.color,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: BorderSide(
+                      color:
+                          inputWasInvalid
+                              ? Theme.of(context).colorScheme.error
+                              : Theme.of(context).dividerColor,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(
+                      color:
+                          inputWasInvalid
+                              ? Theme.of(context).colorScheme.error
+                              : Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                ),
               ),
               actions: [
                 TextButton(
@@ -170,50 +152,64 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                 ),
                 ElevatedButton(
                   onPressed: () async {
-                    if (!isCurrentPasswordVerified) {
-                      final currentPassword =
-                          currentPasswordController.text.trim();
-                      if (await AuthService().validatePassword(
-                        currentPassword,
-                      )) {
-                        setState(() => isCurrentPasswordVerified = true);
-                      } else {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Das eingegebene Passwort ist invalide, versuchen Sie es erneut.',
-                              ),
-                            ),
-                          );
-                        }
-                      }
-                    } else {
-                      final newPassword = newPasswordController.text.trim();
-                      final confirmPassword =
-                          confirmPasswordController.text.trim();
-                      if (newPassword != confirmPassword) {
+                    final newEmail = emailController.text.trim();
+                    if (!(await AuthService().validateEmail(newEmail))) {
+                      setState(() {
+                        inputWasInvalid = true;
+                      });
+                      if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text(
-                              'Die neuen Passwörter stimmen nicht überein.',
+                              'Bitte geben Sie eine gültige E-Mail-Adresse ein.',
                             ),
                           ),
                         );
-                        return;
                       }
-                      try {
-                        final user = FirebaseAuth.instance.currentUser;
-                        await user?.updatePassword(newPassword);
-                        if (context.mounted) {
-                          Navigator.of(context).pop();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Passwort erfolgreich geändert.'),
+                      return;
+                    }
+                    try {
+                      await AuthService().changeUserEmail(newEmail);
+                      updateEmail(newEmail);
+                      if (context.mounted) {
+                        Navigator.of(context).pop();
+                      }
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Ein Verifizierungslink wurde an die E-Mail-Adresse $newEmail gesendet. Bitte bestätigen Sie diese und laden Sie danach die Seite neu.',
                             ),
-                          );
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      if (e is FirebaseAuthException &&
+                          e.code == 'requires-recent-login') {
+                        final success = await showDialog(
+                          context: context,
+                          builder:
+                              (context) => ReauthenticatorDialog(
+                                user: AuthService().currentUser(),
+                              ),
+                        );
+                        if (success) {
+                          await AuthService().changeUserEmail(newEmail);
+                          updateEmail(newEmail);
+                          if (context.mounted) {
+                            Navigator.of(context).pop();
+                          }
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Ein Verifizierungslink wurde an die E-Mail-Adresse $newEmail gesendet. Bitte bestätigen Sie diese und laden Sie danach die Seite neu.',
+                                ),
+                              ),
+                            );
+                          }
                         }
-                      } catch (e) {
+                      } else {
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text('Fehler: ${e.toString()}')),
@@ -222,9 +218,106 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                       }
                     }
                   },
-                  child: Text(
-                    isCurrentPasswordVerified ? 'Speichern' : 'Weiter',
+                  child: const Text('Speichern'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  //ChangePasswordDialogWindow
+  Future<void> showChangePasswordDialog(BuildContext context) async {
+    final newPasswordController = TextEditingController();
+    final confirmPasswordController = TextEditingController();
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Neues Passwort festlegen'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  PasswordFormField(
+                    controller: newPasswordController,
+                    labelText: "Neues Passwort",
+                    validator: AuthService().validatePasswordField,
+                    textInputAction: TextInputAction.next,
                   ),
+                  const SizedBox(height: 10),
+                  PasswordFormField(
+                    controller: confirmPasswordController,
+                    labelText: "Neues Passwort bestätigen",
+                    validator: AuthService().validatePasswordField,
+                    textInputAction: TextInputAction.done,
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Abbrechen'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    final newPassword = newPasswordController.text.trim();
+                    final confirmPassword =
+                        confirmPasswordController.text.trim();
+                    if (newPassword != confirmPassword) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Die neuen Passwörter stimmen nicht überein.',
+                          ),
+                        ),
+                      );
+                      return;
+                    }
+                    try {
+                      await AuthService().changePassword(newPassword);
+                      if (context.mounted) {
+                        Navigator.of(context).pop();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Passwort erfolgreich geändert.'),
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      if (e is FirebaseAuthException &&
+                          e.code == 'requires-recent-login') {
+                        final success = await showDialog(
+                          context: context,
+                          builder:
+                              (context) => ReauthenticatorDialog(
+                                user: AuthService().currentUser(),
+                              ),
+                        );
+                        if (success) {
+                          await AuthService().changePassword(newPassword);
+                          if (context.mounted) {
+                            Navigator.of(context).pop();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Passwort erfolgreich geändert.'),
+                              ),
+                            );
+                          }
+                        }
+                      } else {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Fehler: ${e.toString()}')),
+                          );
+                        }
+                      }
+                    }
+                  },
+                  child: const Text('Speichern'),
                 ),
               ],
             );
@@ -346,12 +439,37 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                                 );
                               }
                             } catch (e) {
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('Fehler: ${e.toString()}'),
-                                  ),
+                              if (e is FirebaseAuthException &&
+                                  e.code == 'requires-recent-login') {
+                                final success = await showDialog(
+                                  context: context,
+                                  builder:
+                                      (context) => ReauthenticatorDialog(
+                                        user: AuthService().currentUser(),
+                                      ),
                                 );
+                                if (success) {
+                                  AuthService().deleteUser();
+                                  if (context.mounted) {
+                                    Navigator.of(context).pop();
+                                    context.go('/login');
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Account wurde erfolgreich gelöscht.',
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                }
+                              } else {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Fehler: ${e.toString()}'),
+                                    ),
+                                  );
+                                }
                               }
                             }
                           }
@@ -368,8 +486,9 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
+    return Column(
       children: [
+        SizedBox(height: 26),
         InkWell(
           child: Container(
             padding: EdgeInsets.all(16),
@@ -385,287 +504,67 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
             ),
           ),
         ),
-        ListTile(
-          onTap: () => showEditEmailDialog(context),
-          leading: const Icon(Icons.mail),
-          title: Text(email ?? '<keine Email>'),
-        ),
-        ListTile(
-          onTap: () => showChangePasswordDialog(context),
-          leading: const Icon(Icons.lock),
-          title: Text('Passwort ändern'),
-        ),
-        ListTile(
-          onTap: () => signOut(context),
-          leading: Icon(Icons.logout),
-          title: Text('Abmelden'),
-        ),
-        ListTile(
-          textColor: Theme.of(context).colorScheme.error,
-          iconColor: Theme.of(context).colorScheme.error,
-          onTap: () => showDeleteAccountDialog(context),
-          leading: Icon(Icons.delete),
-          title: Text('Account löschen'),
-        ),
-      ],
-    );
-  }
-}
-
-class AvatarWithName extends StatefulWidget {
-  final String title;
-  final String? imageUrl;
-  final bool isEditable;
-  final ValueChanged<String> onNameChanged;
-
-  const AvatarWithName({
-    super.key,
-    required this.title,
-    this.imageUrl,
-    this.isEditable = false,
-    required this.onNameChanged,
-  });
-
-  @override
-  State<AvatarWithName> createState() => _AvatarWithNameState();
-}
-
-class _AvatarWithNameState extends State<AvatarWithName> {
-  String currentImageUrl = '';
-
-  @override
-  void initState() {
-    super.initState();
-    currentImageUrl = widget.imageUrl ?? '';
-  }
-
-  //ChangeProfilePictureDialogWindow
-  Future<void> updateProfilePicture(BuildContext context) async {
-    await showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Profilbild bearbeiten'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ElevatedButton.icon(
-                icon: const Icon(Icons.image),
-                label: const Text('Galerie'),
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(48),
-                ),
-                onPressed: () async {
-                  File? image = await pickAndCropImage();
-                  if (image != null) {
-                    try {
-                      if (context.mounted) {
-                        showDialog(
-                          context: context,
-                          barrierDismissible: false,
-                          builder: (BuildContext context) {
-                            return const Center(
-                              child: CircularProgressIndicator(),
-                            );
-                          },
-                        );
-                      }
-                      String newImageUrl = await AuthService()
-                          .uploadAndUpdateProfileImage(image);
-                      image = null;
-                      setState(() {
-                        currentImageUrl = newImageUrl;
-                      });
-                      if (context.mounted) {
-                        Navigator.of(context, rootNavigator: true).pop();
-                        Navigator.of(context).pop();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Profilbild erfolgreich geändert.'),
-                          ),
-                        );
-                      }
-                    } catch (e) {
-                      if (context.mounted) {
-                        image = null;
-                        Navigator.of(context, rootNavigator: true).pop();
-                        Navigator.of(context).pop();
-                        image = File('');
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Fehler: ${e.toString()}')),
-                        );
-                      }
-                    }
-                  }
-                },
-              ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  TextButton(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                    },
-                    child: const Text('Abbrechen'),
-                  ),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      foregroundColor: Theme.of(context).colorScheme.error,
-                      minimumSize: const Size(48, 48),
-                      shape: const CircleBorder(),
-                    ),
-                    onPressed: () async {
-                      try {
-                        showDialog(
-                          context: context,
-                          barrierDismissible: false,
-                          builder: (BuildContext context) {
-                            return const Center(
-                              child: CircularProgressIndicator(),
-                            );
-                          },
-                        );
-                        AuthService().deleteProfileImage();
-                        setState(() {
-                          currentImageUrl = '';
-                        });
-                        if (context.mounted) {
-                          Navigator.of(context, rootNavigator: true).pop();
-                          Navigator.of(context).pop();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Profilbild erfolgreich gelöscht.'),
-                            ),
-                          );
-                        }
-                      } catch (e) {
-                        if (context.mounted) {
-                          Navigator.of(context, rootNavigator: true).pop();
-                          Navigator.of(context).pop();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Fehler: ${e.toString()}')),
-                          );
-                        }
-                      }
-                    },
-                    child: const Icon(
-                      Icons.delete,
-                    ), // Nur das Icon wird angezeigt
-                  ),
-                ],
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  //ChangeNameDialogWindow
-  Future<void> showEditNameDialog(BuildContext context) async {
-    final nameController = TextEditingController(text: widget.title);
-    await showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Name ändern'),
-          content: TextField(
-            controller: nameController,
-            decoration: const InputDecoration(
-              labelText: 'Neuer Name',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Abbrechen'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final newName = nameController.text.trim();
-                if (newName.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Name darf nicht leer sein.')),
-                  );
-                  return;
-                }
-                if (newName.length > 15) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Name darf max. 15 Zeichen enthalten.'),
-                    ),
-                  );
-                  return;
-                }
-                try {
-                  AuthService().changeUsername(newName);
-                  widget.onNameChanged(newName);
-                  if (context.mounted) {
-                    Navigator.of(context).pop();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Name erfolgreich geändert.'),
-                      ),
-                    );
-                  }
-                } catch (e) {
-                  if (context.mounted) {
-                    Navigator.of(context).pop();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Fehler: ${e.toString()}')),
-                    );
-                  }
-                }
-              },
-              child: const Text('Speichern'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        InkWell(
-          onTap: () => updateProfilePicture(context),
-          child: CircleAvatar(
-            radius: 40,
-            child: ClipOval(
-              child:
-                  currentImageUrl.isNotEmpty
-                      ? Image.network(
-                        currentImageUrl,
-                        fit: BoxFit.cover,
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return Center(child: CircularProgressIndicator());
-                        },
-                        errorBuilder:
-                            (context, error, stackTrace) =>
-                                const Center(child: Icon(Icons.error)),
-                      )
-                      : Text(getImagePlaceholder(widget.title)),
-            ),
-          ),
-        ),
-        const SizedBox(width: 16),
         Expanded(
-          child: Text(
-            widget.title,
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          child: RefreshIndicator(
+            onRefresh: refreshUser,
+            child: ListView(
+              children: [
+                ListTile(
+                  onTap: () => showEditEmailDialog(context),
+                  leading: const Icon(Icons.mail),
+                  title: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        email ?? '<keine Email>',
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                      if (pendingEmail != null && pendingEmail!.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(
+                            top: 4.0,
+                          ), // Abstand zur Haupt-Email
+                          child: Text(
+                            'Ausstehend: Bestätigung von',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      if (pendingEmail != null && pendingEmail!.isNotEmpty)
+                        Text(
+                          pendingEmail!,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.error,
+                            fontSize: 12,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+
+                ListTile(
+                  onTap: () => showChangePasswordDialog(context),
+                  leading: const Icon(Icons.lock),
+                  title: Text('Passwort ändern'),
+                ),
+                ListTile(
+                  onTap: () => signOut(context),
+                  leading: const Icon(Icons.logout),
+                  title: Text('Abmelden'),
+                ),
+                ListTile(
+                  textColor: Theme.of(context).colorScheme.error,
+                  iconColor: Theme.of(context).colorScheme.error,
+                  onTap: () => showDeleteAccountDialog(context),
+                  leading: const Icon(Icons.delete),
+                  title: Text('Account löschen'),
+                ),
+              ],
+            ),
           ),
         ),
-        if (widget.isEditable)
-          IconButton(
-            icon: const Icon(Icons.edit),
-            tooltip: 'Name ändern',
-            onPressed: () => showEditNameDialog(context),
-          ),
       ],
     );
   }
