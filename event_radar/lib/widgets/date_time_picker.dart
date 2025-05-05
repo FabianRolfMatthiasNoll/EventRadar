@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../core/util/date_time_format.dart';
 
-/// Zeigt Datum & Zeit an und ruft onChanged auf, wenn sich Start/Ende ändern.
 class DateTimePicker extends StatefulWidget {
   final String label;
   final DateTime initialStart;
@@ -34,7 +33,10 @@ class _DateTimePickerState extends State<DateTimePicker> {
 
   Future<void> _pickDate({required bool isStart}) async {
     DateTime base = isStart ? _start : (_end ?? _start);
-    DateTime first = isStart ? DateTime.now() : _start;
+    DateTime today = DateTime.now();
+
+    final first = isStart ? (_start.isBefore(today) ? _start : today) : _start;
+
     final picked = await showDatePicker(
       context: context,
       initialDate: base,
