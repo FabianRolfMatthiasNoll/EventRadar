@@ -1,7 +1,9 @@
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:collection/collection.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:geolocator/geolocator.dart';
 
@@ -88,6 +90,16 @@ class EventService {
     return snapshot.docs.map((doc) => Event.fromDocument(doc)).toList();
   }
 
+  Stream<List<Event>> getPublicEventsStream() {
+    return _firestore
+        .collection('events')
+        .where('visibility', isEqualTo: 'public')
+        .snapshots()
+        .map(
+          (snap) => snap.docs.map((doc) => Event.fromDocument(doc)).toList(),
+        );
+  }
+
   Future<Event> getEvent(String id) async {
     var doc = await _firestore.collection('events').doc(id).get();
     return Event.fromDocument(doc);
@@ -120,6 +132,44 @@ class EventService {
       'participantCount': FieldValue.increment(-1),
     });
     await eventRef.collection('participants').doc(userId).delete();
+  }
+
+  Future<void> updateEvent(String eventId, Map<String, dynamic> data) {
+    return _firestore.collection('events').doc(eventId).update(data);
+  }
+
+  Future<void> logEventChange(String eventId, Map<String, dynamic> change) {
+    return _firestore
+        .collection('events')
+        .doc(eventId)
+        .collection('messages')
+        .add({
+          ...change,
+          'timestamp': FieldValue.serverTimestamp(),
+          'userId': FirebaseAuth.instance.currentUser?.uid,
+        });
+  }
+
+  Future<void> changeParticipantRole(
+    String eventId,
+    String userId,
+    String newRole,
+  ) async {
+    await _firestore
+        .collection('events')
+        .doc(eventId)
+        .collection('participants')
+        .doc(userId)
+        .update({'role': newRole});
+  }
+
+  Future<void> deleteEvent(String eventId) async {
+    final callable = FirebaseFunctions.instance.httpsCallable('deleteEvent');
+    final result = await callable.call({'eventId': eventId});
+    // the function returns { success: true } on completion
+    if (result.data is Map && (result.data as Map)['success'] != true) {
+      throw Exception("Event deletion failed");
+    }
   }
 
   /// For this function to work there needs to be the following index on events:

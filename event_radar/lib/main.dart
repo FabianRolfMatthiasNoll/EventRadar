@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:go_router/go_router.dart';
 import 'core/services/auth_service.dart';
+import 'core/viewmodels/event_overview_viewmodel.dart';
 import 'firebase_options.dart';
 import 'views/event_list_screen.dart';
 import 'views/event_creation_screen.dart';
@@ -86,7 +87,10 @@ class MyApp extends StatelessWidget {
                 path: '/event-overview/:id',
                 builder: (context, state) {
                   final eventId = state.pathParameters['id']!;
-                  return EventOverviewScreen(eventId: eventId);
+                  return ChangeNotifierProvider(
+                    create: (_) => EventOverviewViewModel(eventId),
+                    child: EventOverviewScreen(eventId: eventId),
+                  );
                 },
               ),
             ],

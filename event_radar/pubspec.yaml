@@ -52,6 +52,7 @@ dependencies:
 
 
   collection: any
+  cloud_functions: ^5.4.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
