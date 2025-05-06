@@ -90,23 +90,6 @@ class AuthService {
     }
   }
 
-  Future<bool> validatePassword(currentPassword) async {
-    try {
-      final user = currentUser();
-      if (user == null) {
-        throw Exception('Kein Benutzer angemeldet.');
-      }
-      final credentials = EmailAuthProvider.credential(
-        email: user.email ?? '',
-        password: currentPassword,
-      );
-      await user.reauthenticateWithCredential(credentials);
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
-
   Future<void> changePassword(newPassword) async {
     final user = currentUser();
     await user?.updatePassword(newPassword);
@@ -150,8 +133,12 @@ class AuthService {
     currentUser()?.reload();
   }
 
-  Future<bool> validateEmail(String email) async {
-    return EmailValidator.validate(email);
+  //validator function
+  String? validateEmail(String? email) {
+    if (EmailValidator.validate(email!)) {
+      return null;
+    }
+    return "Gebe eine gültige Email ein.";
   }
 
   String? validatePasswordField(String? value) {
@@ -159,7 +146,17 @@ class AuthService {
       return 'Bitte Passwort eingeben';
     }
     if (value.length < 6) {
-      return 'Das Passwort muss mindestens 6 Zeichen lang sein.';
+      return 'Passwort mind. 6 Zeichen lang.';
+    }
+    return null;
+  }
+
+  String? validateNameField(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Name darf nicht leer sein.';
+    }
+    if (value.length > 25) {
+      return 'Name max. 25 Zeichen lang.';
     }
     return null;
   }

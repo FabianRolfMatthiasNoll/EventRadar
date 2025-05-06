@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:event_radar/core/services/auth_service.dart';
 import 'package:flutter/material.dart';
 
-import '../../core/utils/image_picker.dart';
+import '../core/util/image_picker.dart';
 import 'avatar_or_placeholder.dart';
 
 class AvatarWithName extends StatefulWidget {
@@ -158,43 +158,23 @@ class _AvatarWithNameState extends State<AvatarWithName> {
   //ChangeNameDialogWindow
   Future<void> showEditNameDialog(BuildContext context) async {
     final nameController = TextEditingController();
-    bool inputWasInvalid = false;
-    String errorContent = '';
     await showDialog(
       context: context,
       builder: (context) {
+        final formKey = GlobalKey<FormState>();
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
               title: const Text('Name ändern'),
-              content: TextField(
-                controller: nameController,
-                decoration: InputDecoration(
-                  labelText: 'Neuer Name',
-                  errorText: inputWasInvalid ? errorContent : null,
-                  labelStyle: TextStyle(
-                    color:
-                        inputWasInvalid
-                            ? Theme.of(context).colorScheme.error
-                            : Theme.of(context).colorScheme.onSurface.withAlpha(
-                              (0.6 * 255).toInt(),
-                            ),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(
-                      color:
-                          inputWasInvalid
-                              ? Theme.of(context).colorScheme.error
-                              : Theme.of(context).dividerColor,
-                    ),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(
-                      color:
-                          inputWasInvalid
-                              ? Theme.of(context).colorScheme.error
-                              : Theme.of(context).colorScheme.primary,
-                    ),
+              content: Form(
+                key: formKey,
+                child: TextFormField(
+                  controller: nameController,
+                  validator: AuthService().validateNameField,
+                  textInputAction: TextInputAction.done,
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: 'Neuer Name',
                   ),
                 ),
               ),
@@ -205,48 +185,26 @@ class _AvatarWithNameState extends State<AvatarWithName> {
                 ),
                 ElevatedButton(
                   onPressed: () async {
-                    final newName = nameController.text.trim();
-                    if (newName.isEmpty) {
-                      setState(() {
-                        inputWasInvalid = true;
-                        errorContent = 'Name darf nicht leer sein.';
-                      });
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Name darf nicht leer sein.')),
-                      );
-                      return;
-                    }
-                    if (newName.length > 25) {
-                      setState(() {
-                        inputWasInvalid = true;
-                        errorContent = 'Name darf max. 25 Zeichen enthalten.';
-                      });
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Name darf max. 25 Zeichen enthalten.'),
-                        ),
-                      );
-                      return;
-                    }
-
-                    try {
-                      errorContent = '';
-                      await AuthService().changeUsername(newName);
-                      widget.onNameChanged(newName);
-                      if (context.mounted) {
-                        Navigator.of(context).pop();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Name erfolgreich geändert.'),
-                          ),
-                        );
-                      }
-                    } catch (e) {
-                      if (context.mounted) {
-                        Navigator.of(context).pop();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Fehler: ${e.toString()}')),
-                        );
+                    if (formKey.currentState?.validate() ?? false) {
+                      final newName = nameController.text.trim();
+                      try {
+                        await AuthService().changeUsername(newName);
+                        widget.onNameChanged(newName);
+                        if (context.mounted) {
+                          Navigator.of(context).pop();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Name erfolgreich geändert.'),
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          Navigator.of(context).pop();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Fehler: ${e.toString()}')),
+                          );
+                        }
                       }
                     }
                   },

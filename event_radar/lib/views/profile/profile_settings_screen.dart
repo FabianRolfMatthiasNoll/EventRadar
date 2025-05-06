@@ -22,6 +22,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
   String? email;
   String? imageUrl;
   String? pendingEmail;
+  String? uid;
 
   @override
   void initState() {
@@ -30,22 +31,23 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     name = user?.displayName;
     email = user?.email;
     imageUrl = user?.photoURL;
+    uid = user?.uid;
     loadEmailFromDevice();
   }
 
   Future<void> loadEmailFromDevice() async {
-    var pendingEmailFromStorage = await SharedPreferencesService.getEmail();
-    if (pendingEmailFromStorage?.toLowerCase() != email?.toLowerCase()) {
+    final newEmail = await SharedPreferencesService.getNewEmail(uid!);
+    if (newEmail?.toLowerCase() != email?.toLowerCase()) {
       setState(() {
-        pendingEmail = pendingEmailFromStorage;
+        pendingEmail = newEmail;
       });
     } else {
-      SharedPreferencesService.clearEmail();
+      await SharedPreferencesService.clearNewEmail(uid!);
     }
   }
 
   Future<void> updateEmail(newEmail) async {
-    await SharedPreferencesService.saveEmail(newEmail);
+    await SharedPreferencesService.saveNewEmail(uid!, newEmail);
     setState(() {
       pendingEmail = newEmail;
     });
@@ -59,7 +61,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         final updatedUser = AuthService().currentUser();
         if (updatedUser?.email?.toLowerCase() ==
             currentPendingEmail.toLowerCase()) {
-          await SharedPreferencesService.clearEmail();
+          await SharedPreferencesService.clearNewEmail(uid!);
           setState(() {
             email = currentPendingEmail;
             pendingEmail = null;
@@ -90,7 +92,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
             final updatedUser = AuthService().currentUser();
             if (updatedUser?.email?.toLowerCase() ==
                 currentPendingEmail.toLowerCase()) {
-              await SharedPreferencesService.clearEmail();
+              await SharedPreferencesService.clearNewEmail(uid!);
               setState(() {
                 email = currentPendingEmail;
                 pendingEmail = null;
@@ -109,40 +111,24 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
 
   Future<void> showEditEmailDialog(BuildContext context) async {
     final emailController = TextEditingController();
-    bool inputWasInvalid = false;
     bool sended = false;
     await showDialog(
       context: context,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setState) {
+            final formKey = GlobalKey<FormState>();
             return AlertDialog(
               title: const Text('E-Mail ändern'),
-              content: TextField(
-                controller: emailController,
-                decoration: InputDecoration(
-                  labelText: 'Neue E-Mail-Adresse',
-                  labelStyle: TextStyle(
-                    color:
-                        inputWasInvalid
-                            ? Theme.of(context).colorScheme.error
-                            : Theme.of(context).textTheme.bodyMedium?.color,
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(
-                      color:
-                          inputWasInvalid
-                              ? Theme.of(context).colorScheme.error
-                              : Theme.of(context).dividerColor,
-                    ),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(
-                      color:
-                          inputWasInvalid
-                              ? Theme.of(context).colorScheme.error
-                              : Theme.of(context).colorScheme.primary,
-                    ),
+              content: Form(
+                key: formKey,
+                child: TextFormField(
+                  controller: emailController,
+                  validator: AuthService().validateEmail,
+                  textInputAction: TextInputAction.done,
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: 'Neue E-Mail-Adresse',
                   ),
                 ),
               ),
@@ -153,85 +139,76 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                 ),
                 ElevatedButton(
                   onPressed: () async {
-                    final newEmail = emailController.text.trim();
-                    if (!(await AuthService().validateEmail(newEmail))) {
-                      setState(() {
-                        inputWasInvalid = true;
-                      });
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Bitte geben Sie eine gültige E-Mail-Adresse ein.',
-                            ),
-                          ),
-                        );
-                      }
-                      return;
-                    }
-                    try {
-                      await AuthService().changeUserEmail(newEmail);
-                      updateEmail(newEmail);
-                      if (context.mounted) {
-                        Navigator.of(context).pop();
-                      }
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'Ein Verifizierungslink wurde an die E-Mail-Adresse $newEmail gesendet. Bitte bestätigen Sie diese und laden Sie danach die Seite neu.',
-                            ),
-                          ),
-                        );
-                      }
-                    } catch (e) {
-                      if (e is FirebaseAuthException &&
-                          e.code == 'requires-recent-login') {
-                        final success = await showDialog(
-                          context: context,
-                          builder:
-                              (context) => ReauthenticatorDialog(
-                                user: AuthService().currentUser(),
-                              ),
-                        );
-                        if (success) {
-                          sended = await AuthService().changeUserEmail(
-                            newEmail,
-                          );
-                          if (sended) {
-                            updateEmail(newEmail);
-                            if (context.mounted) {
-                              Navigator.of(context).pop();
-                            }
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    'Ein Verifizierungslink wurde an die E-Mail-Adresse $newEmail gesendet. Bitte bestätigen Sie diese und laden Sie danach die Seite neu.',
-                                  ),
-                                ),
-                              );
-                            }
-                          } else {
-                            if (context.mounted) {
-                              Navigator.of(context).pop();
-                            }
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    'Beim Senden ist ein Fehler aufgetreten, bitte versuchen Sie es später erneut.',
-                                  ),
-                                ),
-                              );
-                            }
-                          }
+                    if (formKey.currentState?.validate() ?? false) {
+                      final newEmail = emailController.text.trim();
+                      try {
+                        await AuthService().changeUserEmail(newEmail);
+                        updateEmail(newEmail);
+                        if (context.mounted) {
+                          Navigator.of(context).pop();
                         }
-                      } else {
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Fehler: ${e.toString()}')),
+                            SnackBar(
+                              content: Text(
+                                'Ein Verifizierungslink wurde an die E-Mail-Adresse $newEmail gesendet. Bitte bestätigen Sie diese und laden Sie danach die Seite neu.',
+                              ),
+                            ),
                           );
+                        }
+                      } catch (e) {
+                        if (e is FirebaseAuthException &&
+                            e.code == 'requires-recent-login') {
+                          if (context.mounted) {
+                            final success = await showDialog(
+                              context: context,
+                              builder:
+                                  (context) => ReauthenticatorDialog(
+                                    user: AuthService().currentUser(),
+                                  ),
+                            );
+                            if (success) {
+                              sended = await AuthService().changeUserEmail(
+                                newEmail,
+                              );
+                              if (sended) {
+                                updateEmail(newEmail);
+                                if (context.mounted) {
+                                  Navigator.of(context).pop();
+                                }
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Ein Verifizierungslink wurde an die E-Mail-Adresse $newEmail gesendet. Bitte bestätigen Sie diese und laden Sie danach die Seite neu.',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              } else {
+                                if (context.mounted) {
+                                  Navigator.of(context).pop();
+                                }
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Beim Senden ist ein Fehler aufgetreten, bitte versuchen Sie es später erneut.',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              }
+                            }
+                          }
+                        } else {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Fehler: ${e.toString()}'),
+                              ),
+                            );
+                          }
                         }
                       }
                     }
@@ -455,7 +432,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                           ? () async {
                             try {
                               await AuthService().deleteUser();
-                              SharedPreferencesService.clearEmail();
+                              SharedPreferencesService.clearNewEmail(uid!);
                               if (context.mounted) {
                                 Navigator.of(context).pop();
                                 context.go('/login');
@@ -479,7 +456,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                                 );
                                 if (success) {
                                   AuthService().deleteUser();
-                                  SharedPreferencesService.clearEmail();
+                                  SharedPreferencesService.clearNewEmail(uid!);
                                   if (context.mounted) {
                                     Navigator.of(context).pop();
                                     context.go('/login');
