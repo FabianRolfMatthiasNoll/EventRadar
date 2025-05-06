@@ -312,6 +312,7 @@ class _EventOverviewContent extends StatelessWidget {
       title: Text("${event.participantCount} Teilnehmer"),
       trailing: const Icon(Icons.arrow_forward_ios),
       onTap: () {
+        // snippet aus deinem File
         showModalBottomSheet(
           context: context,
           builder:
@@ -326,18 +327,105 @@ class _EventOverviewContent extends StatelessWidget {
                         ? const Center(child: Text("Keine Teilnehmer."))
                         : ListView(
                           children:
-                              vm.participants
-                                  .map(
-                                    (p) => ListTile(
-                                      leading: AvatarOrPlaceholder(
-                                        imageUrl: p.photo,
-                                        name: p.name,
-                                      ),
-                                      title: Text(p.name),
-                                      subtitle: Text(p.role),
-                                    ),
-                                  )
-                                  .toList(),
+                              vm.participants.map((p) {
+                                return ListTile(
+                                  leading: AvatarOrPlaceholder(
+                                    imageUrl: p.photo,
+                                    name: p.name,
+                                  ),
+                                  title: Text(p.name),
+                                  subtitle: Text(p.role),
+                                  onTap:
+                                      vm.isOrganizer! &&
+                                              p.uid !=
+                                                  AuthService()
+                                                      .currentUser()
+                                                      ?.uid
+                                          ? () async {
+                                            // Auswahl-Dialog
+                                            final choice = await showDialog<
+                                              String
+                                            >(
+                                              context: context,
+                                              builder:
+                                                  (ctx) => SimpleDialog(
+                                                    title: Text(
+                                                      p.role == 'organizer'
+                                                          ? 'Organisator verwalten'
+                                                          : 'Teilnehmer verwalten',
+                                                    ),
+                                                    children: [
+                                                      if (p.role != 'organizer')
+                                                        SimpleDialogOption(
+                                                          onPressed:
+                                                              () =>
+                                                                  Navigator.pop(
+                                                                    ctx,
+                                                                    'promote',
+                                                                  ),
+                                                          child: const Text(
+                                                            'Zum Organisator machen',
+                                                          ),
+                                                        ),
+                                                      if (p.role == 'organizer')
+                                                        SimpleDialogOption(
+                                                          onPressed:
+                                                              () =>
+                                                                  Navigator.pop(
+                                                                    ctx,
+                                                                    'demote',
+                                                                  ),
+                                                          child: const Text(
+                                                            'Organisator-Status entfernen',
+                                                          ),
+                                                        ),
+                                                      SimpleDialogOption(
+                                                        onPressed:
+                                                            () => Navigator.pop(
+                                                              ctx,
+                                                              'kick',
+                                                            ),
+                                                        child: const Text(
+                                                          'Aus Event entfernen',
+                                                        ),
+                                                      ),
+                                                      SimpleDialogOption(
+                                                        onPressed:
+                                                            () => Navigator.pop(
+                                                              ctx,
+                                                              null,
+                                                            ),
+                                                        child: const Text(
+                                                          'Abbrechen',
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                            );
+
+                                            if (choice == 'promote') {
+                                              await vm.promoteToOrganizer(
+                                                p.uid,
+                                              );
+                                            } else if (choice == 'demote') {
+                                              await vm.demoteFromOrganizer(
+                                                p.uid,
+                                              );
+                                            } else if (choice == 'kick') {
+                                              final confirm =
+                                                  await showConfirmationDialog(
+                                                    context,
+                                                    'Teilnehmer entfernen',
+                                                    'Willst du ${p.name} wirklich aus dem Event entfernen?',
+                                                  );
+                                              if (confirm) {
+                                                await vm.kickParticipant(p.uid);
+                                              }
+                                            }
+                                          }
+                                          : null,
+                                );
+                              }).toList(),
                         ),
               ),
         );
