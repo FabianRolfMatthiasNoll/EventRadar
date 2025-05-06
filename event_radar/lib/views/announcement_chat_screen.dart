@@ -65,10 +65,16 @@ class _AnnouncementChatContent extends StatelessWidget {
                           message.senderId ==
                           FirebaseAuth.instance.currentUser?.uid;
                       final profile = vm.participantMap[message.senderId];
+
+                      final showSender =
+                          index == 0 ||
+                          vm.messages[index - 1].senderId != message.senderId;
+
                       return ChatBubble(
                         message: message,
                         isMe: isMe,
                         senderProfile: profile,
+                        showSender: showSender,
                       );
                     },
                   );

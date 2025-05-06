@@ -9,12 +9,14 @@ class ChatBubble extends StatelessWidget {
   final ChatMessage message;
   final bool isMe;
   final ParticipantProfile? senderProfile;
+  final bool showSender;
 
   const ChatBubble({
     super.key,
     required this.message,
     required this.isMe,
     this.senderProfile,
+    this.showSender = true,
   });
 
   @override
@@ -57,7 +59,7 @@ class ChatBubble extends StatelessWidget {
                 isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
             children: [
               // Anzeige von Avatar + Name über der Blase, wenn nicht 'me' und Profil da
-              if (!isMe && senderProfile != null)
+              if (!isMe && senderProfile != null && showSender)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 4.0),
                   child: Row(
