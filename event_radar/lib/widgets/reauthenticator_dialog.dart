@@ -45,7 +45,6 @@ class _ReauthenticatorDialogState extends State<ReauthenticatorDialog> {
         email: user.email!,
         password: _passwordController.text,
       );
-
       await user.reauthenticateWithCredential(credential);
 
       if (mounted) {

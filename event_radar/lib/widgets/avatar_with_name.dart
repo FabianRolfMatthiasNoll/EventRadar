@@ -5,7 +5,7 @@ import 'package:event_radar/core/services/auth_service.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/utils/image_picker.dart';
-import '../../core/utils/image_placeholder.dart';
+import 'avatar_or_placeholder.dart';
 
 class AvatarWithName extends StatefulWidget {
   final String title;
@@ -159,6 +159,7 @@ class _AvatarWithNameState extends State<AvatarWithName> {
   Future<void> showEditNameDialog(BuildContext context) async {
     final nameController = TextEditingController();
     bool inputWasInvalid = false;
+    String errorContent = '';
     await showDialog(
       context: context,
       builder: (context) {
@@ -170,6 +171,7 @@ class _AvatarWithNameState extends State<AvatarWithName> {
                 controller: nameController,
                 decoration: InputDecoration(
                   labelText: 'Neuer Name',
+                  errorText: inputWasInvalid ? errorContent : null,
                   labelStyle: TextStyle(
                     color:
                         inputWasInvalid
@@ -204,24 +206,31 @@ class _AvatarWithNameState extends State<AvatarWithName> {
                 ElevatedButton(
                   onPressed: () async {
                     final newName = nameController.text.trim();
-                    if (newName.isEmpty || newName.length > 25) {
+                    if (newName.isEmpty) {
                       setState(() {
                         inputWasInvalid = true;
+                        errorContent = 'Name darf nicht leer sein.';
                       });
-
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Name darf nicht leer sein.')),
+                      );
+                      return;
+                    }
+                    if (newName.length > 25) {
+                      setState(() {
+                        inputWasInvalid = true;
+                        errorContent = 'Name darf max. 25 Zeichen enthalten.';
+                      });
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text(
-                            newName.isEmpty
-                                ? 'Name darf nicht leer sein.'
-                                : 'Name darf max. 25 Zeichen enthalten.',
-                          ),
+                          content: Text('Name darf max. 25 Zeichen enthalten.'),
                         ),
                       );
                       return;
                     }
 
                     try {
+                      errorContent = '';
                       await AuthService().changeUsername(newName);
                       widget.onNameChanged(newName);
                       if (context.mounted) {
@@ -273,7 +282,12 @@ class _AvatarWithNameState extends State<AvatarWithName> {
                             (context, error, stackTrace) =>
                                 const Center(child: Icon(Icons.error)),
                       )
-                      : Text(getImagePlaceholder(widget.title)),
+                      : Text(
+                        AvatarOrPlaceholder(
+                          name: widget.title,
+                          imageUrl: '',
+                        ).getImagePlaceholder(widget.title),
+                      ),
             ),
           ),
         ),

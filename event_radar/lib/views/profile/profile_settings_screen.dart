@@ -235,27 +235,31 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     await showDialog(
       context: context,
       builder: (context) {
+        final formKey = GlobalKey<FormState>();
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
               title: const Text('Neues Passwort festlegen'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  PasswordFormField(
-                    controller: newPasswordController,
-                    labelText: "Neues Passwort",
-                    validator: AuthService().validatePasswordField,
-                    textInputAction: TextInputAction.next,
-                  ),
-                  const SizedBox(height: 10),
-                  PasswordFormField(
-                    controller: confirmPasswordController,
-                    labelText: "Neues Passwort bestätigen",
-                    validator: AuthService().validatePasswordField,
-                    textInputAction: TextInputAction.done,
-                  ),
-                ],
+              content: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    PasswordFormField(
+                      controller: newPasswordController,
+                      labelText: "Neues Passwort",
+                      validator: AuthService().validatePasswordField,
+                      textInputAction: TextInputAction.next,
+                    ),
+                    const SizedBox(height: 10),
+                    PasswordFormField(
+                      controller: confirmPasswordController,
+                      labelText: "Neues Passwort bestätigen",
+                      validator: AuthService().validatePasswordField,
+                      textInputAction: TextInputAction.done,
+                    ),
+                  ],
+                ),
               ),
               actions: [
                 TextButton(
@@ -264,55 +268,61 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                 ),
                 ElevatedButton(
                   onPressed: () async {
-                    final newPassword = newPasswordController.text.trim();
-                    final confirmPassword =
-                        confirmPasswordController.text.trim();
-                    if (newPassword != confirmPassword) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Die neuen Passwörter stimmen nicht überein.',
-                          ),
-                        ),
-                      );
-                      return;
-                    }
-                    try {
-                      await AuthService().changePassword(newPassword);
-                      if (context.mounted) {
-                        Navigator.of(context).pop();
+                    if (formKey.currentState?.validate() ?? false) {
+                      final newPassword = newPasswordController.text.trim();
+                      final confirmPassword =
+                          confirmPasswordController.text.trim();
+                      if (newPassword != confirmPassword) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Passwort erfolgreich geändert.'),
+                            content: Text(
+                              'Die neuen Passwörter stimmen nicht überein.',
+                            ),
                           ),
                         );
+                        return;
                       }
-                    } catch (e) {
-                      if (e is FirebaseAuthException &&
-                          e.code == 'requires-recent-login') {
-                        final success = await showDialog(
-                          context: context,
-                          builder:
-                              (context) => ReauthenticatorDialog(
-                                user: AuthService().currentUser(),
-                              ),
-                        );
-                        if (success) {
-                          await AuthService().changePassword(newPassword);
+                      try {
+                        await AuthService().changePassword(newPassword);
+                        if (context.mounted) {
+                          Navigator.of(context).pop();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Passwort erfolgreich geändert.'),
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        if (e is FirebaseAuthException &&
+                            e.code == 'requires-recent-login') {
+                          final success = await showDialog(
+                            context: context,
+                            builder:
+                                (context) => ReauthenticatorDialog(
+                                  user: AuthService().currentUser(),
+                                ),
+                          );
+                          if (success) {
+                            await AuthService().changePassword(newPassword);
+                            if (context.mounted) {
+                              Navigator.of(context).pop();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Passwort erfolgreich geändert.',
+                                  ),
+                                ),
+                              );
+                            }
+                          }
+                        } else {
                           if (context.mounted) {
-                            Navigator.of(context).pop();
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Passwort erfolgreich geändert.'),
+                              SnackBar(
+                                content: Text('Fehler: ${e.toString()}'),
                               ),
                             );
                           }
-                        }
-                      } else {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Fehler: ${e.toString()}')),
-                          );
                         }
                       }
                     }
@@ -426,7 +436,8 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                       isConfirmed
                           ? () async {
                             try {
-                              AuthService().deleteUser();
+                              await AuthService().deleteUser();
+                              SharedPreferencesService.clearEmail();
                               if (context.mounted) {
                                 Navigator.of(context).pop();
                                 context.go('/login');
@@ -450,11 +461,12 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                                 );
                                 if (success) {
                                   AuthService().deleteUser();
+                                  SharedPreferencesService.clearEmail();
                                   if (context.mounted) {
                                     Navigator.of(context).pop();
                                     context.go('/login');
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
+                                      SnackBar(
                                         content: Text(
                                           'Account wurde erfolgreich gelöscht.',
                                         ),
@@ -521,9 +533,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                       ),
                       if (pendingEmail != null && pendingEmail!.isNotEmpty)
                         Padding(
-                          padding: const EdgeInsets.only(
-                            top: 4.0,
-                          ), // Abstand zur Haupt-Email
+                          padding: const EdgeInsets.only(top: 4.0),
                           child: Text(
                             'Ausstehend: Bestätigung von',
                             style: TextStyle(
