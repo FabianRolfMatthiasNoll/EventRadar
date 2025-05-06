@@ -33,6 +33,7 @@ dependencies:
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
+  flutter_native_splash: ^2.2.18
   cupertino_icons: ^1.0.8
   firebase_core: ^3.13.0
   provider: ^6.1.4
@@ -46,12 +47,16 @@ dependencies:
   firebase_app_check: ^0.3.2+5
   flutter_dotenv: ^5.2.1
   url_launcher: ^6.3.1
+  firebase_auth: ^5.5.2
+  go_router: ^14.8.1
 
 
+  collection: any
+  cloud_functions: ^5.4.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
+  flutter_launcher_icons: ^0.13.1
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
   # activated in the `analysis_options.yaml` file located at the root of your
@@ -66,10 +71,39 @@ dev_dependencies:
 flutter:
   assets:
     - .env
+    - lib/core/assets/EventRadarLogo.png
+    - lib/core/assets/EventRadarLogo.png
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+#flutter_native_splash is showing the EventRadarLogo when App is loading
+flutter_native_splash:
+  android: true
+  ios: true
+  background_image: lib/core/assets/WhiteBackground.png
+  image: lib/core/assets/EventRadarLogo.png
+  branding: lib/core/assets/Branding.png
+
+  background_image_dark: lib/core/assets/BlackBackground.png
+  image_dark: lib/core/assets/EventRadarLogo.png
+  branding_dark: lib/core/assets/BrandingDark.png
+
+  android_12:
+    color: "#fdf7fe" #Backgroundcolor when booting
+    image: lib/core/assets/EventRadarLogo.png
+    branding: lib/core/assets/Branding.png
+
+    color_dark: "#121212" #Backgroundcolor when booting
+    image_dark: lib/core/assets/EventRadarLogo.png
+    branding_dark: lib/core/assets/BrandingDark.png
+
+#flutter_icons is showing the EventRadarLogo on the homescreen
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "lib/core/assets/EventRadarLogo.png" # Pfad zum neuen App-Icon
 
   # To add assets to your application, add an assets section, like this:
   # assets:
