@@ -117,9 +117,14 @@ class AuthService {
     await user?.updateDisplayName(newName);
   }
 
-  Future<void> changeUserEmail(newEmail) async {
-    final user = currentUser();
-    await user?.verifyBeforeUpdateEmail(newEmail);
+  Future<bool> changeUserEmail(newEmail) async {
+    try {
+      final user = currentUser();
+      await user?.verifyBeforeUpdateEmail(newEmail);
+      return true;
+    } catch (e) {
+      return false;
+    }
   }
 
   Future<void> deleteUser() async {
@@ -147,24 +152,6 @@ class AuthService {
 
   Future<bool> validateEmail(String email) async {
     return EmailValidator.validate(email);
-  }
-
-  Future<bool> reauthenticateWithEmail(String password) async {
-    final user = currentUser();
-    if (user == null || user.email == null) {
-      throw Exception('Kein Benutzer angemeldet.');
-    }
-    try {
-      final credential = EmailAuthProvider.credential(
-        email: user.email!,
-        password: password,
-      );
-      await user.reauthenticateWithCredential(credential);
-      return true;
-    } catch (e) {
-      print('Reauthentifizierung fehlgeschlagen: $e');
-      return false;
-    }
   }
 
   String? validatePasswordField(String? value) {

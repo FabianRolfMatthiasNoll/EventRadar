@@ -40,12 +40,10 @@ class _ReauthenticatorDialogState extends State<ReauthenticatorDialog> {
         });
         return;
       }
-
-      final credential = EmailAuthProvider.credential(
-        email: user.email!,
-        password: _passwordController.text,
+      await AuthService().signInWithEmailPassword(
+        user.email!,
+        _passwordController.text,
       );
-      await user.reauthenticateWithCredential(credential);
 
       if (mounted) {
         Navigator.of(context).pop(true);

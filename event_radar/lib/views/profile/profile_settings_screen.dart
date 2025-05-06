@@ -110,6 +110,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
   Future<void> showEditEmailDialog(BuildContext context) async {
     final emailController = TextEditingController();
     bool inputWasInvalid = false;
+    bool sended = false;
     await showDialog(
       context: context,
       builder: (context) {
@@ -194,19 +195,36 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                               ),
                         );
                         if (success) {
-                          await AuthService().changeUserEmail(newEmail);
-                          updateEmail(newEmail);
-                          if (context.mounted) {
-                            Navigator.of(context).pop();
-                          }
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  'Ein Verifizierungslink wurde an die E-Mail-Adresse $newEmail gesendet. Bitte bestätigen Sie diese und laden Sie danach die Seite neu.',
+                          sended = await AuthService().changeUserEmail(
+                            newEmail,
+                          );
+                          if (sended) {
+                            updateEmail(newEmail);
+                            if (context.mounted) {
+                              Navigator.of(context).pop();
+                            }
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Ein Verifizierungslink wurde an die E-Mail-Adresse $newEmail gesendet. Bitte bestätigen Sie diese und laden Sie danach die Seite neu.',
+                                  ),
                                 ),
-                              ),
-                            );
+                              );
+                            }
+                          } else {
+                            if (context.mounted) {
+                              Navigator.of(context).pop();
+                            }
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Beim Senden ist ein Fehler aufgetreten, bitte versuchen Sie es später erneut.',
+                                  ),
+                                ),
+                              );
+                            }
                           }
                         }
                       } else {
