@@ -5,13 +5,13 @@ import 'package:flutter/material.dart';
 import 'password_form_field.dart';
 
 class ReauthenticatorDialog extends StatefulWidget {
-  final User? user;
+  final String? email;
   final String titleText;
   final String contentText;
 
   const ReauthenticatorDialog({
     super.key,
-    required this.user,
+    required this.email,
     this.titleText = "Sicherheitshinweis",
     this.contentText =
         "Diese Operation ist eine sicherheitsrelevante Aktion. Bitte geben Sie Ihr Passwort ein, um fortzufahren.",
@@ -33,15 +33,8 @@ class _ReauthenticatorDialogState extends State<ReauthenticatorDialog> {
     });
 
     try {
-      final user = AuthService().currentUser();
-      if (user == null) {
-        setState(() {
-          _errorMessage = 'Kein Benutzer angemeldet.';
-        });
-        return;
-      }
       await AuthService().signInWithEmailPassword(
-        user.email!,
+        widget.email!,
         _passwordController.text,
       );
 

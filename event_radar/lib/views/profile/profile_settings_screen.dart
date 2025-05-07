@@ -23,6 +23,9 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
   String? imageUrl;
   String? pendingEmail;
   String? uid;
+  String? oldEmail;
+  String? newEmail;
+  bool? isPending = false;
 
   @override
   void initState() {
@@ -35,43 +38,73 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     loadEmailFromDevice();
   }
 
-  Future<void> loadEmailFromDevice() async {
-    final newEmail = await SharedPreferencesService.getNewEmail(uid!);
-    if (newEmail?.toLowerCase() != email?.toLowerCase()) {
-      setState(() {
-        pendingEmail = newEmail;
-      });
-    } else {
+  Future<void> onDeleteUser() async {
+    if (uid != null && email != null) {
+      await SharedPreferencesService.clearOldEmail(uid!);
       await SharedPreferencesService.clearNewEmail(uid!);
+      await SharedPreferencesService.clearEmailPending(uid!);
     }
   }
 
-  Future<void> updateEmail(newEmail) async {
-    await SharedPreferencesService.saveNewEmail(uid!, newEmail);
-    setState(() {
-      pendingEmail = newEmail;
-    });
+  Future<void> loadEmailFromDevice() async {
+    if (uid != null && email != null) {
+      newEmail = await SharedPreferencesService.getNewEmail(uid!);
+      oldEmail = await SharedPreferencesService.getOldEmail(uid!);
+      isPending = await SharedPreferencesService.isEmailPending(uid!);
+      if ((newEmail?.toLowerCase() != email?.toLowerCase()) && isPending!) {
+        setState(() {
+          pendingEmail = newEmail;
+        });
+      }
+    }
+  }
+
+  Future<void> onUpdateEmail(newEmail) async {
+    if (uid != null && email != null) {
+      setState(() {
+        oldEmail = email!;
+        this.newEmail = newEmail;
+        pendingEmail = newEmail;
+        isPending = true;
+      });
+      await SharedPreferencesService.setEmailPending(uid!, true);
+      await SharedPreferencesService.saveOldEmail(
+        userId: uid!,
+        oldEmail: email!,
+      );
+      await SharedPreferencesService.saveNewEmail(
+        userId: uid!,
+        newEmail: newEmail,
+      );
+    }
   }
 
   Future<void> refreshUser() async {
     try {
-      final currentPendingEmail = pendingEmail;
       await AuthService().currentUser()?.reload();
-      if (currentPendingEmail != null && currentPendingEmail.isNotEmpty) {
-        final updatedUser = AuthService().currentUser();
-        if (updatedUser?.email?.toLowerCase() ==
-            currentPendingEmail.toLowerCase()) {
+      final updatedUser = AuthService().currentUser();
+      if (isPending!) {
+        if (updatedUser?.email?.toLowerCase() == pendingEmail?.toLowerCase()) {
+          setState(() {
+            email = pendingEmail;
+            pendingEmail = null;
+            isPending = false;
+          });
+          await SharedPreferencesService.setEmailPending(uid!, false);
+        }
+      } else {
+        if (updatedUser?.email?.toLowerCase() == oldEmail?.toLowerCase()) {
           await SharedPreferencesService.clearNewEmail(uid!);
           setState(() {
-            email = currentPendingEmail;
-            pendingEmail = null;
+            email = oldEmail;
+            newEmail = null;
           });
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Die Seite wurde aktualisiert')),
-            );
-          }
         }
+      }
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Die Seite wurde aktualisiert')));
       }
     } catch (e) {
       if (context.mounted) {
@@ -79,30 +112,50 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
           context: context,
           builder:
               (context) => ReauthenticatorDialog(
-                user: AuthService().currentUser(),
+                email: isPending! ? newEmail : oldEmail,
                 titleText: 'Ihre Sitzung ist abgelaufen',
                 contentText:
                     'Bitte authentifizieren Sie sich erneut, um fortzufahren.',
               ),
         );
         if (success) {
-          final currentPendingEmail = pendingEmail;
           await AuthService().currentUser()?.reload();
-          if (currentPendingEmail != null && currentPendingEmail.isNotEmpty) {
+          final updatedUser = AuthService().currentUser();
+
+          if (isPending!) {
             final updatedUser = AuthService().currentUser();
-            if (updatedUser?.email?.toLowerCase() ==
-                currentPendingEmail.toLowerCase()) {
+
+            if (updatedUser?.email?.toLowerCase() == newEmail?.toLowerCase()) {
+              await SharedPreferencesService.setEmailPending(uid!, false);
+              setState(() {
+                email = pendingEmail;
+                pendingEmail = null;
+                isPending = false;
+              });
+            }
+          } else {
+            if (updatedUser?.email?.toLowerCase() == oldEmail?.toLowerCase()) {
               await SharedPreferencesService.clearNewEmail(uid!);
               setState(() {
-                email = currentPendingEmail;
-                pendingEmail = null;
+                email = oldEmail;
+                newEmail = null;
               });
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Die Seite wurde aktualisiert')),
-                );
-              }
             }
+          }
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Die Seite wurde aktualisiert')),
+            );
+          }
+        } else {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Etwas ist schiefgelaufen, melden Sie sich erneut an.',
+                ),
+              ),
+            );
           }
         }
       }
@@ -111,7 +164,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
 
   Future<void> showEditEmailDialog(BuildContext context) async {
     final emailController = TextEditingController();
-    bool sended = false;
+    bool sentEmail = false;
     await showDialog(
       context: context,
       builder: (context) {
@@ -142,19 +195,24 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                     if (formKey.currentState?.validate() ?? false) {
                       final newEmail = emailController.text.trim();
                       try {
-                        await AuthService().changeUserEmail(newEmail);
-                        updateEmail(newEmail);
-                        if (context.mounted) {
-                          Navigator.of(context).pop();
-                        }
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Ein Verifizierungslink wurde an die E-Mail-Adresse $newEmail gesendet. Bitte bestätigen Sie diese und laden Sie danach die Seite neu.',
+                        sentEmail = await AuthService().changeUserEmail(
+                          newEmail,
+                        );
+                        if (sentEmail) {
+                          onUpdateEmail(newEmail);
+                          if (context.mounted) {
+                            Navigator.of(context).pop();
+                          }
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Ein Verifizierungslink wurde an die E-Mail-Adresse $newEmail gesendet. Bitte bestätigen Sie diese und laden Sie danach die Seite neu.',
+                                ),
                               ),
-                            ),
-                          );
+                            );
+                          }
+                          sentEmail = false;
                         }
                       } catch (e) {
                         if (e is FirebaseAuthException &&
@@ -163,16 +221,15 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                             final success = await showDialog(
                               context: context,
                               builder:
-                                  (context) => ReauthenticatorDialog(
-                                    user: AuthService().currentUser(),
-                                  ),
+                                  (context) =>
+                                      ReauthenticatorDialog(email: email),
                             );
                             if (success) {
-                              sended = await AuthService().changeUserEmail(
+                              sentEmail = await AuthService().changeUserEmail(
                                 newEmail,
                               );
-                              if (sended) {
-                                updateEmail(newEmail);
+                              if (sentEmail) {
+                                onUpdateEmail(newEmail);
                                 if (context.mounted) {
                                   Navigator.of(context).pop();
                                 }
@@ -185,6 +242,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                                     ),
                                   );
                                 }
+                                sentEmail = false;
                               } else {
                                 if (context.mounted) {
                                   Navigator.of(context).pop();
@@ -293,9 +351,8 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                           final success = await showDialog(
                             context: context,
                             builder:
-                                (context) => ReauthenticatorDialog(
-                                  user: AuthService().currentUser(),
-                                ),
+                                (context) =>
+                                    ReauthenticatorDialog(email: email),
                           );
                           if (success) {
                             await AuthService().changePassword(newPassword);
@@ -432,7 +489,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                           ? () async {
                             try {
                               await AuthService().deleteUser();
-                              SharedPreferencesService.clearNewEmail(uid!);
+                              onDeleteUser();
                               if (context.mounted) {
                                 Navigator.of(context).pop();
                                 context.go('/login');
@@ -450,9 +507,8 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                                 final success = await showDialog(
                                   context: context,
                                   builder:
-                                      (context) => ReauthenticatorDialog(
-                                        user: AuthService().currentUser(),
-                                      ),
+                                      (context) =>
+                                          ReauthenticatorDialog(email: email),
                                 );
                                 if (success) {
                                   AuthService().deleteUser();
@@ -526,7 +582,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                         email ?? '<keine Email>',
                         style: const TextStyle(fontSize: 16),
                       ),
-                      if (pendingEmail != null && pendingEmail!.isNotEmpty)
+                      if (isPending!)
                         Padding(
                           padding: const EdgeInsets.only(top: 4.0),
                           child: Text(
@@ -537,7 +593,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                             ),
                           ),
                         ),
-                      if (pendingEmail != null && pendingEmail!.isNotEmpty)
+                      if (isPending!)
                         Text(
                           pendingEmail!,
                           style: TextStyle(
