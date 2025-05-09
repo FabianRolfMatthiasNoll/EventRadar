@@ -38,7 +38,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
           message = null;
           break;
         case RegisterStatus.weakPassword:
-          message = 'Das Passwort ist zu schwach.';
+          message =
+              'Das Passwort ist zu schwach, das Passwort muss mind. 6 Zeichen lang sein.';
           break;
         case RegisterStatus.emailAlreadyUsed:
           message = 'Es gibt bereits einen Account mit dieser Email.';
@@ -72,23 +73,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
     context.go('/login');
   }
 
-  String? _validateEmail(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Bitte Email eingeben';
-    }
-    return null;
-  }
-
-  String? _validateName(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Bitte Name eingeben';
-    }
-    return null;
-  }
-
   String? _validatePassword(String? value) {
     if (value == null || value.isEmpty) {
-      return 'Bitte Passwort eingeben';
+      return 'Bitte ein Passwort eingeben';
+    }
+    if (value.length < 6) {
+      return 'Passwort ist mind. 6 Zeichen lang.';
     }
     String password1 = _password1Controller.text;
     String password2 = _password2Controller.text;
@@ -114,7 +104,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
             TextFormField(
               controller: _emailController,
-              validator: _validateEmail,
+              validator: AuthService().validateEmail,
               textInputAction: TextInputAction.next,
               decoration: InputDecoration(
                 border: OutlineInputBorder(),
@@ -124,7 +114,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
             TextFormField(
               controller: _nameController,
-              validator: _validateName,
+              validator: AuthService().validateNameField,
               textInputAction: TextInputAction.next,
               decoration: InputDecoration(
                 border: OutlineInputBorder(),

@@ -43,7 +43,7 @@ class _PasswordFormFieldState extends State<PasswordFormField> {
         prefixIcon: Icon(Icons.lock),
         suffixIcon: IconButton(
           icon: Icon(
-              _obscurePassword ? Icons.visibility_off : Icons.visibility
+            _obscurePassword ? Icons.visibility_off : Icons.visibility,
           ),
           onPressed: _togglePasswordVisibility,
         ),
