@@ -4,6 +4,8 @@ import '../models/chat_message.dart';
 
 class ChatService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  CollectionReference<Map<String, dynamic>> _channels(String eventId) =>
+      _firestore.collection('events').doc(eventId).collection('channels');
 
   Future<String> getAnnouncementChannelId(String eventId) async {
     final eventRef = _firestore.collection('events').doc(eventId);
@@ -23,6 +25,31 @@ class ChatService {
       'createdAt': FieldValue.serverTimestamp(),
     });
     return channelRef.id;
+  }
+
+  Future<List<QueryDocumentSnapshot>> listChatChannels(String eventId) =>
+      _channels(eventId)
+          .where('channelType', isNotEqualTo: 'announcement')
+          .orderBy('createdAt')
+          .get()
+          .then((q) => q.docs);
+
+  Future<String> createChatChannel(String eventId, String channelName) async {
+    final ref = await _channels(eventId).add({
+      'channelName': channelName,
+      'channelType': 'chat',
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+    return ref.id;
+  }
+
+  Future<void> deleteChatChannel(String eventId, String channelId) async {
+    final channelRef = _channels(eventId).doc(channelId);
+    final msgs = await channelRef.collection('messages').get();
+    for (var doc in msgs.docs) {
+      await doc.reference.delete();
+    }
+    await channelRef.delete();
   }
 
   Stream<List<ChatMessage>> streamMessages(String eventId, String channelId) {

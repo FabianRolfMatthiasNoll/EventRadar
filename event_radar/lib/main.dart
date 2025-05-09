@@ -1,4 +1,5 @@
 import 'package:event_radar/views/announcement_chat_screen.dart';
+import 'package:event_radar/views/chat_screen.dart';
 import 'package:event_radar/views/event_overview_screen.dart';
 import 'package:event_radar/views/profile/login_screen.dart';
 import 'package:event_radar/views/profile/profile_settings_screen.dart';
@@ -95,12 +96,24 @@ class MyApp extends StatelessWidget {
                   );
                 },
                 routes: [
-                  // NEU: Announcement-Chat
                   GoRoute(
                     path: 'announcements',
                     builder: (context, state) {
                       final eventId = state.pathParameters['id']!;
                       return AnnouncementChatScreen(eventId: eventId);
+                    },
+                  ),
+                  GoRoute(
+                    path: 'chat/:channelId',
+                    builder: (context, state) {
+                      final eventId = state.pathParameters['id']!;
+                      final channelId = state.pathParameters['channelId']!;
+                      final channelName = state.extra as String? ?? 'Chat';
+                      return ChatScreen(
+                        eventId: eventId,
+                        channelId: channelId,
+                        channelName: channelName,
+                      );
                     },
                   ),
                 ],
