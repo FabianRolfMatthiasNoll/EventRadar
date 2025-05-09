@@ -143,10 +143,10 @@ class AuthService {
 
   String? validatePasswordField(String? value) {
     if (value == null || value.isEmpty) {
-      return 'Bitte Passwort eingeben';
+      return 'Bitte ein Passwort eingeben.';
     }
     if (value.length < 6) {
-      return 'Passwort mind. 6 Zeichen lang.';
+      return 'Passwort ist mind. 6 Zeichen lang.';
     }
     return null;
   }

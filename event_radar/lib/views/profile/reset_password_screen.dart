@@ -57,19 +57,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     }
   }
 
-  String? _validateEmail(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Bitte Email eingeben';
-    }
-    final emailRegex = RegExp(
-      r'^[a-zA-Z0-9._%-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$',
-    );
-    if (!emailRegex.hasMatch(value)) {
-      return 'Bitte eine gültige E-Mail-Adresse eingeben';
-    }
-    return null;
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -93,7 +80,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   labelText: 'Email',
                   prefixIcon: Icon(Icons.email),
                 ),
-                validator: _validateEmail,
+                validator: AuthService().validateEmail,
               ),
               SizedBox(height: 16),
               Row(

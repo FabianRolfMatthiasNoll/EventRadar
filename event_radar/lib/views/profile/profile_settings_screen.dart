@@ -26,6 +26,8 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
   String? oldEmail;
   String? newEmail;
   bool? isPending = false;
+  final newPasswordController = TextEditingController();
+  final confirmPasswordController = TextEditingController();
 
   @override
   void initState() {
@@ -36,6 +38,20 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     imageUrl = user?.photoURL;
     uid = user?.uid;
     loadEmailFromDevice();
+  }
+
+  String? validateBothPasswords(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Bitte ein Passwort eingeben';
+    }
+    if (value.length < 6) {
+      return 'Passwort ist mind. 6 Zeichen lang.';
+    }
+    if (newPasswordController.text.trim() !=
+        confirmPasswordController.text.trim()) {
+      return 'Passwörter stimmen nicht überein';
+    }
+    return null;
   }
 
   Future<void> onDeleteUser() async {
@@ -102,9 +118,9 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         }
       }
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Die Seite wurde aktualisiert')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Die Seite wurde aktualisiert.')),
+        );
       }
     } catch (e) {
       if (context.mounted) {
@@ -113,7 +129,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
           builder:
               (context) => ReauthenticatorDialog(
                 email: isPending! ? newEmail : oldEmail,
-                titleText: 'Ihre Sitzung ist abgelaufen',
+                titleText: 'Ihre Sitzung ist abgelaufen.',
                 contentText:
                     'Bitte authentifizieren Sie sich erneut, um fortzufahren.',
               ),
@@ -144,17 +160,13 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
           }
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Die Seite wurde aktualisiert')),
+              SnackBar(content: Text('Die Seite wurde aktualisiert.')),
             );
           }
         } else {
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  'Etwas ist schiefgelaufen, melden Sie sich erneut an.',
-                ),
-              ),
+              SnackBar(content: Text('Falsches Passwort wurde eingegeben.')),
             );
           }
         }
@@ -207,7 +219,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(
-                                  'Ein Verifizierungslink wurde an die E-Mail-Adresse $newEmail gesendet. Bitte bestätigen Sie diese und laden Sie danach die Seite neu.',
+                                  'Ein Verifizierungslink wurde an die E-Mail-Adresse: $newEmail gesendet. Bitte bestätigen und die Seite neu aktualisieren.',
                                 ),
                               ),
                             );
@@ -237,7 +249,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text(
-                                        'Ein Verifizierungslink wurde an die E-Mail-Adresse $newEmail gesendet. Bitte bestätigen Sie diese und laden Sie danach die Seite neu.',
+                                        'Ein Verifizierungslink wurde an die E-Mail-Adresse: $newEmail gesendet. Bitte bestätigen und die Seite neu aktualisieren.',
                                       ),
                                     ),
                                   );
@@ -251,7 +263,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text(
-                                        'Beim Senden ist ein Fehler aufgetreten, bitte versuchen Sie es später erneut.',
+                                        'Beim Senden eines Verifizierungslink ist ein Fehler aufgetreten, bitte versuchen Sie es später erneut.',
                                       ),
                                     ),
                                   );
@@ -263,7 +275,9 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('Fehler: ${e.toString()}'),
+                                content: Text(
+                                  'Ein unbekannter Fehler ist aufgetreten.',
+                                ),
                               ),
                             );
                           }
@@ -283,8 +297,6 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
 
   //ChangePasswordDialogWindow
   Future<void> showChangePasswordDialog(BuildContext context) async {
-    final newPasswordController = TextEditingController();
-    final confirmPasswordController = TextEditingController();
     await showDialog(
       context: context,
       builder: (context) {
@@ -301,14 +313,14 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                     PasswordFormField(
                       controller: newPasswordController,
                       labelText: "Neues Passwort",
-                      validator: AuthService().validatePasswordField,
+                      validator: validateBothPasswords,
                       textInputAction: TextInputAction.next,
                     ),
                     const SizedBox(height: 10),
                     PasswordFormField(
                       controller: confirmPasswordController,
                       labelText: "Neues Passwort bestätigen",
-                      validator: AuthService().validatePasswordField,
+                      validator: validateBothPasswords,
                       textInputAction: TextInputAction.done,
                     ),
                   ],
@@ -322,21 +334,10 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                 ElevatedButton(
                   onPressed: () async {
                     if (formKey.currentState?.validate() ?? false) {
-                      final newPassword = newPasswordController.text.trim();
-                      final confirmPassword =
-                          confirmPasswordController.text.trim();
-                      if (newPassword != confirmPassword) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Die neuen Passwörter stimmen nicht überein.',
-                            ),
-                          ),
-                        );
-                        return;
-                      }
                       try {
-                        await AuthService().changePassword(newPassword);
+                        await AuthService().changePassword(
+                          newPasswordController.text.trim(),
+                        );
                         if (context.mounted) {
                           Navigator.of(context).pop();
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -348,30 +349,36 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                       } catch (e) {
                         if (e is FirebaseAuthException &&
                             e.code == 'requires-recent-login') {
-                          final success = await showDialog(
-                            context: context,
-                            builder:
-                                (context) =>
-                                    ReauthenticatorDialog(email: email),
-                          );
-                          if (success) {
-                            await AuthService().changePassword(newPassword);
-                            if (context.mounted) {
-                              Navigator.of(context).pop();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Passwort erfolgreich geändert.',
-                                  ),
-                                ),
+                          if (context.mounted) {
+                            final success = await showDialog(
+                              context: context,
+                              builder:
+                                  (context) =>
+                                      ReauthenticatorDialog(email: email),
+                            );
+                            if (success) {
+                              await AuthService().changePassword(
+                                newPasswordController.text.trim(),
                               );
+                              if (context.mounted) {
+                                Navigator.of(context).pop();
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Passwort erfolgreich geändert.',
+                                    ),
+                                  ),
+                                );
+                              }
                             }
                           }
                         } else {
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('Fehler: ${e.toString()}'),
+                                content: Text(
+                                  'Ein unbekannter Fehler ist aufgetreten.',
+                                ),
                               ),
                             );
                           }
@@ -504,32 +511,40 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                             } catch (e) {
                               if (e is FirebaseAuthException &&
                                   e.code == 'requires-recent-login') {
-                                final success = await showDialog(
-                                  context: context,
-                                  builder:
-                                      (context) =>
-                                          ReauthenticatorDialog(email: email),
-                                );
-                                if (success) {
-                                  AuthService().deleteUser();
-                                  SharedPreferencesService.clearNewEmail(uid!);
-                                  if (context.mounted) {
-                                    Navigator.of(context).pop();
-                                    context.go('/login');
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          'Account wurde erfolgreich gelöscht.',
-                                        ),
-                                      ),
+                                if (context.mounted) {
+                                  final success = await showDialog(
+                                    context: context,
+                                    builder:
+                                        (context) =>
+                                            ReauthenticatorDialog(email: email),
+                                  );
+                                  if (success) {
+                                    AuthService().deleteUser();
+                                    SharedPreferencesService.clearNewEmail(
+                                      uid!,
                                     );
+                                    if (context.mounted) {
+                                      Navigator.of(context).pop();
+                                      context.go('/login');
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Account wurde erfolgreich gelöscht.',
+                                          ),
+                                        ),
+                                      );
+                                    }
                                   }
                                 }
                               } else {
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                      content: Text('Fehler: ${e.toString()}'),
+                                      content: Text(
+                                        'Ein unbekannter Fehler ist aufgetreten.',
+                                      ), //${e.toString()} falls logging
                                     ),
                                   );
                                 }
