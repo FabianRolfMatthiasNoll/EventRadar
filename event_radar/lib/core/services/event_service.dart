@@ -3,14 +3,15 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:collection/collection.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../models/event.dart';
+import 'chat_service.dart';
 
 class EventService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final ChatService _chatService = ChatService();
 
   /// Uploads the image to Firebase Storage and returns its download URL.
   Future<String> uploadEventImage(File imageFile) async {
@@ -47,8 +48,8 @@ class EventService {
 
     // Create the default channel.
     DocumentReference channelRef = await eventRef.collection('channels').add({
-      'channelName': 'Standard Chat',
-      'channelType': 'main',
+      'channelName': 'Announcements',
+      'channelType': 'announcement',
       'createdAt': Timestamp.now(),
     });
 
@@ -138,16 +139,50 @@ class EventService {
     return _firestore.collection('events').doc(eventId).update(data);
   }
 
-  Future<void> logEventChange(String eventId, Map<String, dynamic> change) {
-    return _firestore
+  Future<void> logEventChange(
+    String eventId,
+    Map<String, dynamic> change,
+  ) async {
+    final channelId = await _chatService.getAnnouncementChannelId(eventId);
+    final messagesRef = _firestore
         .collection('events')
         .doc(eventId)
-        .collection('messages')
-        .add({
-          ...change,
-          'timestamp': FieldValue.serverTimestamp(),
-          'userId': FirebaseAuth.instance.currentUser?.uid,
-        });
+        .collection('channels')
+        .doc(channelId)
+        .collection('messages');
+
+    final type = change['type'] as String? ?? '';
+    late String text;
+    switch (type) {
+      case 'title_change':
+        text = 'Titel wurde geändert';
+        break;
+      case 'description_change':
+        text = 'Beschreibung wurde geändert';
+        break;
+      case 'date_change':
+        text = 'Datum wurde geändert';
+        break;
+      case 'end_date_change':
+        text = 'Enddatum wurde geändert';
+        break;
+      case 'image_change':
+        text = 'Profilbild/Veranstaltungsbild wurde geändert';
+        break;
+      case 'location_change':
+        text = 'Ort wurde geändert';
+        break;
+      default:
+        text = 'Event wurde aktualisiert';
+    }
+
+    await messagesRef.add({
+      'text': text,
+      'type': 'update',
+      'senderId': 'system',
+      'createdAt': FieldValue.serverTimestamp(),
+      'metadata': change,
+    });
   }
 
   Future<void> changeParticipantRole(
