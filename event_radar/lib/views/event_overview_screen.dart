@@ -42,6 +42,7 @@ class _EventOverviewContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<EventOverviewViewModel>();
+    final chVm = context.watch<ChannelsViewModel>();
 
     if (vm.isEventLoading) {
       return const Center(child: CircularProgressIndicator());
@@ -70,9 +71,9 @@ class _EventOverviewContent extends StatelessWidget {
             _buildDateTile(context, vm, event, isOrganizer),
             _buildParticipantsTile(context, vm, event),
             if (isParticipant) ...[
-              _buildAnnouncementsTile(context),
+              _buildAnnouncementsTile(context, vm, chVm, isOrganizer),
               const SizedBox(height: 8),
-              _buildChatRoomsSection(context, vm, isOrganizer),
+              _buildChatRoomsSection(context, vm, chVm, isOrganizer),
               const SizedBox(height: 16),
             ],
 
@@ -330,14 +331,48 @@ class _EventOverviewContent extends StatelessWidget {
     );
   }
 
-  Widget _buildAnnouncementsTile(BuildContext context) {
-    final vm = context.read<EventOverviewViewModel>();
+  Widget _buildAnnouncementsTile(
+    BuildContext context,
+    EventOverviewViewModel vm,
+    ChannelsViewModel chVm,
+    bool isOrganizer,
+  ) {
+    if (chVm.isLoading) {
+      return ListTile(
+        leading: const Icon(Icons.announcement),
+        title: const Text('Announcements'),
+        trailing: SizedBox(
+          width: 24,
+          height: 24,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+        enabled: false,
+      );
+    }
+
+    if (chVm.error != null) {
+      return ListTile(
+        leading: const Icon(Icons.announcement),
+        title: const Text('Announcements'),
+        subtitle: Text('Fehler: ${chVm.error}'),
+        enabled: false,
+      );
+    }
+
+    final ann = chVm.channels.firstWhere(
+      (c) => c.type == 'announcement',
+      orElse: () => throw Exception('Announcement-Channel nicht gefunden'),
+    );
+
     return ListTile(
       leading: const Icon(Icons.announcement),
-      title: const Text('Announcements'),
+      title: Text(ann.name),
       trailing: const Icon(Icons.arrow_forward_ios),
       onTap: () {
-        context.push('/event-overview/${vm.event!.id}/announcements');
+        context.push(
+          '/event-overview/${vm.event!.id}/chat/${ann.id}',
+          extra: ann.name,
+        );
       },
     );
   }
@@ -345,10 +380,9 @@ class _EventOverviewContent extends StatelessWidget {
   Widget _buildChatRoomsSection(
     BuildContext context,
     EventOverviewViewModel vm,
+    ChannelsViewModel chVm,
     bool isOrganizer,
   ) {
-    final chVm = context.watch<ChannelsViewModel>();
-
     if (chVm.isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -360,7 +394,6 @@ class _EventOverviewContent extends StatelessWidget {
     }
 
     final chatOnly = chVm.channels.where((c) => c.type == 'chat').toList();
-
     if (chatOnly.isEmpty) {
       return ListTile(
         leading: const Icon(Icons.add_comment_outlined),
@@ -380,7 +413,6 @@ class _EventOverviewContent extends StatelessWidget {
       );
     }
 
-    // Liste der Chat-Räume rendern
     return Column(
       children:
           chatOnly.map((ch) {

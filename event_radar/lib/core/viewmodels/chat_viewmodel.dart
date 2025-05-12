@@ -1,3 +1,5 @@
+// lib/core/viewmodels/chat_viewmodel.dart
+
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -10,8 +12,12 @@ import '../services/chat_service.dart';
 import '../services/participant_service.dart';
 
 class ChatViewModel extends ChangeNotifier {
-  final String eventId, channelId;
+  final String eventId;
+  final String channelId;
+  final bool isAnnouncement;
+  bool isOrganizer = false;
   final ChatService _svc = ChatService();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
   final String currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
   List<ChatMessage> messages = [];
   Map<String, ParticipantProfile> participantMap = {};
@@ -19,27 +25,32 @@ class ChatViewModel extends ChangeNotifier {
 
   final Map<String, List<DocumentSnapshot>> _surveyVotes = {};
   final Set<String> _surveySubscribed = {};
-  final List<StreamSubscription> _voteSubs = [];
+  final List<StreamSubscription<List<DocumentSnapshot>>> _voteSubs = [];
 
   List<DocumentSnapshot> votesFor(String messageId) =>
       _surveyVotes[messageId] ?? [];
 
   late final StreamSubscription<List<ChatMessage>> _messageSub;
 
-  ChatViewModel(this.eventId, this.channelId) {
+  ChatViewModel({
+    required this.eventId,
+    required this.channelId,
+    this.isAnnouncement = false,
+  }) {
     _init();
   }
+
   void _init() async {
     final parts = await ParticipantService.fetch(eventId);
     participantMap = {for (var p in parts) p.uid: p};
 
+    _checkIfOrganizer();
+
     _messageSub = _svc.streamMessages(eventId, channelId).listen((msgs) {
       messages = msgs;
-      // für jede neue Umfrage den Vote‐Stream abonnieren
       for (var msg in msgs) {
         if (msg.type == 'survey' && !_surveySubscribed.contains(msg.id)) {
           _surveySubscribed.add(msg.id);
-          // hier die Subscription speichern:
           final sub = _svc.streamSurveyVotes(eventId, channelId, msg.id).listen(
             (docs) {
               _surveyVotes[msg.id] = docs;
@@ -49,8 +60,30 @@ class ChatViewModel extends ChangeNotifier {
           _voteSubs.add(sub);
         }
       }
+      isLoading = false;
       notifyListeners();
     });
+  }
+
+  Future<void> _checkIfOrganizer() async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      isOrganizer = false;
+      return;
+    }
+    try {
+      final doc =
+          await FirebaseFirestore.instance
+              .collection('events')
+              .doc(eventId)
+              .collection('participants')
+              .doc(user.uid)
+              .get();
+      final role = doc.data()?['role'] as String?;
+      isOrganizer = (role == 'organizer');
+    } catch (_) {
+      isOrganizer = false;
+    }
   }
 
   Future<void> sendMessage(String text) async {
@@ -66,36 +99,30 @@ class ChatViewModel extends ChangeNotifier {
     await _svc.sendMessage(eventId, channelId, msg);
   }
 
-  void _listenSurveyVotes(String messageId) {
-    _svc.streamSurveyVotes(eventId, channelId, messageId).listen((docs) {
-      _surveyVotes[messageId] = docs;
-      notifyListeners();
-    });
-  }
-
-  Future<void> createSurvey(String question, List<Map<String, String>> opts) {
-    return _svc.createSurvey(eventId, channelId, question, opts);
+  Future<void> createSurvey(
+    String question,
+    List<Map<String, String>> options,
+  ) {
+    return _svc.createSurvey(eventId, channelId, question, options);
   }
 
   Future<void> voteSurvey(String messageId, String optionId) {
     return _svc.voteSurvey(eventId, channelId, messageId, optionId);
   }
 
-  Future<void> deleteSurvey(String messageId) {
-    return _svc.deleteMessage(eventId, channelId, messageId);
-  }
-
   Future<void> closeSurvey(String messageId) {
     return _svc.closeSurvey(eventId, channelId, messageId);
   }
 
+  Future<void> deleteSurvey(String messageId) {
+    return _svc.deleteMessage(eventId, channelId, messageId);
+  }
+
   @override
   void dispose() {
-    // zuerst alle Votes‐Streams abbestellen
     for (var sub in _voteSubs) {
       sub.cancel();
     }
-    // dann den Haupt‐Stream
     _messageSub.cancel();
     super.dispose();
   }
