@@ -258,12 +258,15 @@ class _FilterOptionsSelectionState extends State<FilterOptionsSelection> {
                   ),
                 ],
               ),
-              subtitle: Slider(
-                min: sliderMin,
-                max: sliderMax,
-                value: distance.toDouble().clamp(sliderMin, sliderMax),
-                onChanged: sliderEnabled ? _updateDistance : null,
-              ),
+              subtitle:
+                  sliderEnabled
+                      ? Slider(
+                        min: sliderMin,
+                        max: sliderMax,
+                        value: distance.toDouble().clamp(sliderMin, sliderMax),
+                        onChanged: _updateDistance,
+                      )
+                      : SizedBox.shrink(),
             ),
             Divider(),
             DateSelectionTile(
