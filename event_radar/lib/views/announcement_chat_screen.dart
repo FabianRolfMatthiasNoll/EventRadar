@@ -83,8 +83,12 @@ class _AnnouncementChatContent extends StatelessWidget {
             ),
             if (vm.isOrganizer)
               ChatInputField(
-                onSend: (text) {
-                  vm.sendMessage(text);
+                onSend: vm.sendMessage,
+                onCreateSurvey: (surveyData) async {
+                  await vm.createSurvey(
+                    surveyData.question,
+                    surveyData.options,
+                  );
                 },
               ),
           ],

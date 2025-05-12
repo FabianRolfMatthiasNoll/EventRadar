@@ -359,10 +359,8 @@ class _EventOverviewContent extends StatelessWidget {
       );
     }
 
-    // Nur tatsächliche Chat-Räume (type == 'chat') extrahieren
     final chatOnly = chVm.channels.where((c) => c.type == 'chat').toList();
 
-    // Platzhalter, falls noch keine Chat-Räume existieren
     if (chatOnly.isEmpty) {
       return ListTile(
         leading: const Icon(Icons.add_comment_outlined),

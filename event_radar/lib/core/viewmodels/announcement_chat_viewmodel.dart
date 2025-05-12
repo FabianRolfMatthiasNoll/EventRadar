@@ -24,6 +24,8 @@ class AnnouncementChatViewModel extends ChangeNotifier {
 
   StreamSubscription<List<ChatMessage>>? _messagesSub;
 
+  late final String channelId;
+
   AnnouncementChatViewModel(this.eventId) {
     _init();
   }
@@ -31,7 +33,7 @@ class AnnouncementChatViewModel extends ChangeNotifier {
   void _init() async {
     _checkIfOrganizer();
     try {
-      final channelId = await _chatService.getAnnouncementChannelId(eventId);
+      channelId = await _chatService.getAnnouncementChannelId(eventId);
       _messagesSub = _chatService
           .streamMessages(eventId, channelId)
           .listen(
@@ -100,6 +102,25 @@ class AnnouncementChatViewModel extends ChangeNotifier {
       errorMessage = 'Senden fehlgeschlagen: ${e.toString()}';
       notifyListeners();
     }
+  }
+
+  Future<void> createSurvey(
+    String question,
+    List<Map<String, String>> options,
+  ) {
+    return _chatService.createSurvey(eventId, channelId, question, options);
+  }
+
+  Future<void> voteSurvey(String messageId, String optionId) {
+    return _chatService.voteSurvey(eventId, channelId, messageId, optionId);
+  }
+
+  Future<void> deleteSurvey(String messageId) {
+    return _chatService.deleteMessage(eventId, channelId, messageId);
+  }
+
+  Future<void> closeSurvey(String messageId) {
+    return _chatService.closeSurvey(eventId, channelId, messageId);
   }
 
   @override
