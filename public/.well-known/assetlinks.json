@@ -1,0 +1,11 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "cc.eventradar.event_radar",
+      "sha256_cert_fingerprints":
+        ["5F:50:5A:AA:9C:21:B1:CC:AA:C0:49:14:3B:80:12:AA:93:11:E5:66:57:9D:5C:74:C9:3B:D5:1B:C0:14:8C:C4"]
+    }
+  }
+]

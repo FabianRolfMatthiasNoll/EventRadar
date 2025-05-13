@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/models/event.dart';
@@ -53,6 +54,16 @@ class _EventOverviewContent extends StatelessWidget {
 
     return MainScaffold(
       title: "Event Details",
+      appBarActions:
+          isParticipant
+              ? [
+                IconButton(
+                  onPressed:
+                      () => _leaveEvent(context, vm, currentUser.uid, event),
+                  icon: Icon(Icons.exit_to_app),
+                ),
+              ]
+              : [],
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -67,7 +78,9 @@ class _EventOverviewContent extends StatelessWidget {
             const SizedBox(height: 16),
             _buildMap(context, vm, event, isOrganizer),
             const SizedBox(height: 16),
-            _buildJoinLeaveButton(context, vm, event, isParticipant),
+            isParticipant
+                ? _buildShareButton(vm.eventId)
+                : _buildJoinButton(context, event, currentUser!.uid),
           ],
         ),
       ),
@@ -421,25 +434,36 @@ class _EventOverviewContent extends StatelessWidget {
     );
   }
 
-  Widget _buildJoinLeaveButton(
-    BuildContext context,
-    EventOverviewViewModel vm,
-    Event event,
-    bool isParticipant,
-  ) {
-    final currentUser = AuthService().currentUser();
+  void _shareEvent(String eventId) {
+    SharePlus.instance.share(
+      ShareParams(
+        uri: Uri(
+          scheme: "https",
+          host: "eventradar-3a7c6.web.app",
+          path: "event-overview/$eventId",
+        ),
+      ),
+    );
+  }
+
+  Widget _buildShareButton(String eventId) {
     return Center(
-      child: ElevatedButton(
-        onPressed:
-            currentUser != null
-                ? () => _toggleParticipation(
-                  context,
-                  isParticipant,
-                  currentUser.uid,
-                  event,
-                )
-                : null,
-        child: Text(isParticipant ? "Event verlassen" : "Event beitreten"),
+      child: FilledButton(
+        onPressed: () => _shareEvent(eventId),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          spacing: 16,
+          children: [Icon(Icons.share), Text("Event teilen")],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildJoinButton(BuildContext context, Event event, String userId) {
+    return Center(
+      child: FilledButton(
+        onPressed: () => _joinEvent(context, userId, event),
+        child: Text("Event beitreten"),
       ),
     );
   }
@@ -479,154 +503,154 @@ class _EventOverviewContent extends StatelessWidget {
     );
   }
 
-  Future<void> _toggleParticipation(
+  Future<void> _leaveEvent(
     BuildContext context,
-    bool isParticipant,
+    EventOverviewViewModel vm,
     String userId,
     Event event,
   ) async {
-    final currentUser = AuthService().currentUser();
-    if (currentUser == null) return;
-    final vm = context.read<EventOverviewViewModel>();
-
     final isAdminUser = vm.participants.any(
       (p) => p.uid == userId && p.role == 'organizer',
     );
 
-    if (isParticipant) {
-      // User is attempting to leave the event
-      if (isAdminUser) {
-        final otherAdmins =
-            vm.participants
-                .where((p) => p.role == 'organizer' && p.uid != userId)
-                .toList();
-        final otherParticipants =
-            vm.participants.where((p) => p.uid != userId).toList();
+    // User is attempting to leave the event
+    if (isAdminUser) {
+      final otherAdmins =
+          vm.participants
+              .where((p) => p.role == 'organizer' && p.uid != userId)
+              .toList();
+      final otherParticipants =
+          vm.participants.where((p) => p.uid != userId).toList();
 
-        if (otherAdmins.isNotEmpty) {
-          // There are other admins, warn user will lose admin status
-          final confirmed = await showConfirmationDialog(
-            context,
-            "Event verlassen",
-            "Wenn du dieses Event verlässt, verlierst du deinen Admin-Status.",
-          );
-          if (!confirmed) return;
-          // Proceed to leave normally below
-        } else if (otherParticipants.isNotEmpty) {
-          // User is the only admin, but there are other participants
-          final assignConfirmed = await showConfirmationDialog(
-            context,
-            "Event verlassen",
-            "Du bist der einzige Admin. Möchtest du einen anderen Teilnehmer zum Admin machen?",
-          );
-          if (!assignConfirmed) return;
-          if (!context.mounted) return;
-          // Let user choose a new admin from remaining participants
-          String? newAdminId = await _selectNewAdminDialog(
-            context,
-            otherParticipants,
-          );
-          if (newAdminId == null) {
-            // User cancelled selecting a new admin, do not leave
-            return;
-          }
-          // Promote the selected participant to admin (organizer)
-          try {
-            await EventService().changeParticipantRole(
-              event.id!,
-              newAdminId,
-              'organizer',
-            );
-          } catch (e) {
-            // If assigning new admin fails, show error and abort leaving
-            if (!context.mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Fehler: Admin konnte nicht übertragen. ($e)'),
-              ),
-            );
-            return;
-          }
-          // Now another admin exists, so current user can leave safely
-          if (!context.mounted) return;
-          final confirmed = await showConfirmationDialog(
-            context,
-            "Event verlassen",
-            "Neuer Admin wurde ernannt. Möchtest du das Event jetzt verlassen?",
-          );
-          // If user decides not to leave after all (even after assigning), we might consider reverting the new admin,
-          // but for simplicity we keep the new admin and just abort the leave.
-          if (!confirmed) return;
-          // Proceed to leave
-        } else {
-          // User is the last participant (and an admin)
-          final confirmed = await showConfirmationDialog(
-            context,
-            "Event verlassen",
-            "Du bist der letzte Teilnehmer. Wenn du gehst, wird das Event gelöscht.",
-          );
-          if (!confirmed) return;
-          // Call Cloud Function to delete the event entirely
-          try {
-            await EventService().deleteEvent(event.id!);
-            if (!context.mounted) return;
-            Navigator.of(context).pop();
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(const SnackBar(content: Text("Event gelöscht")));
-          } catch (e) {
-            if (!context.mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Fehler beim Löschen des Events: $e')),
-            );
-          }
-          return;
-        }
-      } else {
-        // Normal participant (not admin) leaving
+      if (otherAdmins.isNotEmpty) {
+        // There are other admins, warn user will lose admin status
         final confirmed = await showConfirmationDialog(
           context,
           "Event verlassen",
-          "Bist du sicher, dass du das Event verlassen willst?",
+          "Wenn du dieses Event verlässt, verlierst du deinen Admin-Status.",
         );
         if (!confirmed) return;
-      }
-
-      try {
-        await EventService().leaveEvent(event.id!, userId);
-        if (!context.mounted) return;
-        ScaffoldMessenger.of(
+        // Proceed to leave normally below
+      } else if (otherParticipants.isNotEmpty) {
+        // User is the only admin, but there are other participants
+        final assignConfirmed = await showConfirmationDialog(
           context,
-        ).showSnackBar(const SnackBar(content: Text("Event verlassen")));
-      } catch (e) {
-        if (!context.mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Fehler: Event konnte nicht verlassen werden. ($e)"),
-          ),
+          "Event verlassen",
+          "Du bist der einzige Admin. Möchtest du einen anderen Teilnehmer zum Admin machen?",
         );
+        if (!assignConfirmed) return;
+        if (!context.mounted) return;
+        // Let user choose a new admin from remaining participants
+        String? newAdminId = await _selectNewAdminDialog(
+          context,
+          otherParticipants,
+        );
+        if (newAdminId == null) {
+          // User cancelled selecting a new admin, do not leave
+          return;
+        }
+        // Promote the selected participant to admin (organizer)
+        try {
+          await EventService().changeParticipantRole(
+            event.id!,
+            newAdminId,
+            'organizer',
+          );
+        } catch (e) {
+          // If assigning new admin fails, show error and abort leaving
+          if (!context.mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Fehler: Admin konnte nicht übertragen. ($e)'),
+            ),
+          );
+          return;
+        }
+        // Now another admin exists, so current user can leave safely
+        if (!context.mounted) return;
+        final confirmed = await showConfirmationDialog(
+          context,
+          "Event verlassen",
+          "Neuer Admin wurde ernannt. Möchtest du das Event jetzt verlassen?",
+        );
+        // If user decides not to leave after all (even after assigning), we might consider reverting the new admin,
+        // but for simplicity we keep the new admin and just abort the leave.
+        if (!confirmed) return;
+        // Proceed to leave
+      } else {
+        // User is the last participant (and an admin)
+        final confirmed = await showConfirmationDialog(
+          context,
+          "Event verlassen",
+          "Du bist der letzte Teilnehmer. Wenn du gehst, wird das Event gelöscht.",
+        );
+        if (!confirmed) return;
+        // Call Cloud Function to delete the event entirely
+        try {
+          await EventService().deleteEvent(event.id!);
+          if (!context.mounted) return;
+          Navigator.of(context).pop();
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text("Event gelöscht")));
+        } catch (e) {
+          if (!context.mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Fehler beim Löschen des Events: $e')),
+          );
+        }
+        return;
       }
     } else {
-      // User is not a participant yet (joining the event)
+      // Normal participant (not admin) leaving
       final confirmed = await showConfirmationDialog(
         context,
-        "Event beitreten",
-        "Möchtest du dich bei diesem Event eintragen?",
+        "Event verlassen",
+        "Bist du sicher, dass du das Event verlassen willst?",
       );
       if (!confirmed) return;
+    }
 
-      try {
-        await EventService().joinEvent(event.id!, userId);
-        if (!context.mounted) return;
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("Event beigetreten")));
-      } catch (e) {
-        if (!context.mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Fehler: Konnte Event nicht beitreten. ($e)")),
-        );
-      }
+    try {
+      await EventService().leaveEvent(event.id!, userId);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Event verlassen")));
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Fehler: Event konnte nicht verlassen werden. ($e)"),
+        ),
+      );
+    }
+  }
+
+  Future<void> _joinEvent(
+    BuildContext context,
+    String userId,
+    Event event,
+  ) async {
+    // User is not a participant yet (joining the event)
+    final confirmed = await showConfirmationDialog(
+      context,
+      "Event beitreten",
+      "Möchtest du dich bei diesem Event eintragen?",
+    );
+    if (!confirmed) return;
+
+    try {
+      await EventService().joinEvent(event.id!, userId);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Event beigetreten")));
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Fehler: Konnte Event nicht beitreten. ($e)")),
+      );
     }
   }
 
