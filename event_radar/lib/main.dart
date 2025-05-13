@@ -1,3 +1,4 @@
+import 'package:event_radar/views/chat_screen.dart';
 import 'package:event_radar/views/event_overview_screen.dart';
 import 'package:event_radar/views/profile/login_screen.dart';
 import 'package:event_radar/views/profile/profile_settings_screen.dart';
@@ -93,6 +94,23 @@ class MyApp extends StatelessWidget {
                     child: EventOverviewScreen(eventId: eventId),
                   );
                 },
+                routes: [
+                  GoRoute(
+                    path: 'chat/:channelId',
+                    builder: (context, state) {
+                      final eventId = state.pathParameters['id']!;
+                      final channelId = state.pathParameters['channelId']!;
+                      final name = state.extra as String? ?? 'Chat';
+                      final isAnnouncement = name == 'Announcements';
+                      return ChatScreen(
+                        eventId: eventId,
+                        channelId: channelId,
+                        channelName: name,
+                        isAnnouncement: isAnnouncement,
+                      );
+                    },
+                  ),
+                ],
               ),
             ],
           ),

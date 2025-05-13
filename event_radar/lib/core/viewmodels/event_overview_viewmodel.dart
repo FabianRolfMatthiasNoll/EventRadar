@@ -166,6 +166,21 @@ class EventOverviewViewModel extends ChangeNotifier {
     });
   }
 
+  Future<void> promoteToOrganizer(String userId) async {
+    await EventService().changeParticipantRole(eventId, userId, 'organizer');
+    await _loadParticipants();
+  }
+
+  Future<void> demoteFromOrganizer(String userId) async {
+    await EventService().changeParticipantRole(eventId, userId, 'participant');
+    await _loadParticipants();
+  }
+
+  Future<void> kickParticipant(String userId) async {
+    await EventService().leaveEvent(eventId, userId);
+    await _loadParticipants();
+  }
+
   @override
   void dispose() {
     _eventSub.cancel();

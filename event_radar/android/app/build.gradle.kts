@@ -1,3 +1,15 @@
+import java.io.FileInputStream
+import java.util.Properties
+
+val dotenvFile = rootProject.file("../.env")
+val dotenvProps = Properties().apply {
+    if (dotenvFile.exists()) {
+        load(FileInputStream(dotenvFile))
+    } else {
+        logger.warn(".env file not found at ${dotenvFile.absolutePath}")
+    }
+}
+
 plugins {
     id("com.android.application")
     // START: FlutterFire Configuration
@@ -31,6 +43,8 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders["MAPS_API_KEY"] =
+            dotenvProps.getProperty("GOOGLE_MAPS_API_KEY", "")
     }
 
     buildTypes {

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -17,6 +18,8 @@ import '../../widgets/date_time_picker.dart';
 import '../../widgets/image_picker.dart';
 import '../../widgets/main_scaffold.dart';
 import '../../widgets/static_map_snippet.dart';
+import '../core/viewmodels/channels_viewmodel.dart';
+import '../widgets/participant_list_sheet.dart';
 import 'map_picker_screen.dart';
 
 class EventOverviewScreen extends StatelessWidget {
@@ -25,8 +28,11 @@ class EventOverviewScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => EventOverviewViewModel(eventId),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => EventOverviewViewModel(eventId)),
+        ChangeNotifierProvider(create: (_) => ChannelsViewModel(eventId)),
+      ],
       child: _EventOverviewContent(),
     );
   }
@@ -36,6 +42,7 @@ class _EventOverviewContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<EventOverviewViewModel>();
+    final chVm = context.watch<ChannelsViewModel>();
 
     if (vm.isEventLoading) {
       return const Center(child: CircularProgressIndicator());
@@ -63,8 +70,13 @@ class _EventOverviewContent extends StatelessWidget {
             _buildDescription(context, vm, event, isOrganizer),
             _buildDateTile(context, vm, event, isOrganizer),
             _buildParticipantsTile(context, vm, event),
-            if (isParticipant) _buildAnnouncementsTile(),
-            const SizedBox(height: 16),
+            if (isParticipant) ...[
+              _buildAnnouncementsTile(context, vm, chVm, isOrganizer),
+              const SizedBox(height: 8),
+              _buildChatRoomsSection(context, vm, chVm, isOrganizer),
+              const SizedBox(height: 16),
+            ],
+
             _buildMap(context, vm, event, isOrganizer),
             const SizedBox(height: 16),
             _buildJoinLeaveButton(context, vm, event, isParticipant),
@@ -313,45 +325,124 @@ class _EventOverviewContent extends StatelessWidget {
       onTap: () {
         showModalBottomSheet(
           context: context,
-          builder:
-              (_) => Padding(
-                padding: const EdgeInsets.all(16),
-                child:
-                    vm.isParticipantsLoading
-                        ? const Center(child: CircularProgressIndicator())
-                        : vm.participantsError != null
-                        ? Center(child: Text("Fehler: ${vm.participantsError}"))
-                        : vm.participants.isEmpty
-                        ? const Center(child: Text("Keine Teilnehmer."))
-                        : ListView(
-                          children:
-                              vm.participants
-                                  .map(
-                                    (p) => ListTile(
-                                      leading: AvatarOrPlaceholder(
-                                        imageUrl: p.photo,
-                                        name: p.name,
-                                      ),
-                                      title: Text(p.name),
-                                      subtitle: Text(p.role),
-                                    ),
-                                  )
-                                  .toList(),
-                        ),
-              ),
+          builder: (_) => ParticipantsListSheet(vm: vm),
         );
       },
     );
   }
 
-  Widget _buildAnnouncementsTile() {
+  Widget _buildAnnouncementsTile(
+    BuildContext context,
+    EventOverviewViewModel vm,
+    ChannelsViewModel chVm,
+    bool isOrganizer,
+  ) {
+    if (chVm.isLoading) {
+      return ListTile(
+        leading: const Icon(Icons.announcement),
+        title: const Text('Announcements'),
+        trailing: SizedBox(
+          width: 24,
+          height: 24,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+        enabled: false,
+      );
+    }
+
+    if (chVm.error != null) {
+      return ListTile(
+        leading: const Icon(Icons.announcement),
+        title: const Text('Announcements'),
+        subtitle: Text('Fehler: ${chVm.error}'),
+        enabled: false,
+      );
+    }
+
+    final ann = chVm.channels.firstWhere(
+      (c) => c.type == 'announcement',
+      orElse: () => throw Exception('Announcement-Channel nicht gefunden'),
+    );
+
     return ListTile(
       leading: const Icon(Icons.announcement),
-      title: const Text('Announcements'),
+      title: Text(ann.name),
       trailing: const Icon(Icons.arrow_forward_ios),
       onTap: () {
-        // TODO: Navigate to announcements.
+        context.push(
+          '/event-overview/${vm.event!.id}/chat/${ann.id}',
+          extra: ann.name,
+        );
       },
+    );
+  }
+
+  Widget _buildChatRoomsSection(
+    BuildContext context,
+    EventOverviewViewModel vm,
+    ChannelsViewModel chVm,
+    bool isOrganizer,
+  ) {
+    if (chVm.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (chVm.error != null) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Text('Chat-Fehler: ${chVm.error}'),
+      );
+    }
+
+    final chatOnly = chVm.channels.where((c) => c.type == 'chat').toList();
+    if (chatOnly.isEmpty) {
+      return ListTile(
+        leading: const Icon(Icons.add_comment_outlined),
+        title: const Text('Kein Chat-Raum vorhanden.'),
+        onTap:
+            isOrganizer
+                ? () async {
+                  final name = await showDialog<String>(
+                    context: context,
+                    builder: (ctx) => _ChatNameDialog(),
+                  );
+                  if (name != null && name.trim().isNotEmpty) {
+                    await chVm.createChat(name.trim());
+                  }
+                }
+                : null,
+      );
+    }
+
+    return Column(
+      children:
+          chatOnly.map((ch) {
+            return ListTile(
+              leading: const Icon(Icons.chat_bubble_outline),
+              title: Text(ch.name),
+              trailing:
+                  isOrganizer
+                      ? IconButton(
+                        icon: const Icon(Icons.delete_outline),
+                        onPressed: () async {
+                          final confirm = await showConfirmationDialog(
+                            context,
+                            'Chat-Raum löschen',
+                            'Möchtest du "${ch.name}" wirklich löschen? Damit löscht du auch alle Nachrichten in diesem Chat.',
+                          );
+                          if (confirm) {
+                            await chVm.deleteChat(ch.id);
+                          }
+                        },
+                      )
+                      : null,
+              onTap: () {
+                context.push(
+                  '/event-overview/${vm.event!.id}/chat/${ch.id}',
+                  extra: ch.name,
+                );
+              },
+            );
+          }).toList(),
     );
   }
 
@@ -645,5 +736,35 @@ class _EventOverviewContent extends StatelessWidget {
         ),
       );
     }
+  }
+}
+
+class _ChatNameDialog extends StatefulWidget {
+  @override
+  State<_ChatNameDialog> createState() => _ChatNameDialogState();
+}
+
+class _ChatNameDialogState extends State<_ChatNameDialog> {
+  final _ctrl = TextEditingController();
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Chat-Raum erstellen'),
+      content: TextField(
+        controller: _ctrl,
+        decoration: const InputDecoration(hintText: 'Name des Chat-Raums'),
+        autofocus: true,
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Abbrechen'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(_ctrl.text.trim()),
+          child: const Text('Erstellen'),
+        ),
+      ],
+    );
   }
 }
