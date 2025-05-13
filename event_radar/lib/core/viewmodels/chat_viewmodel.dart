@@ -69,6 +69,7 @@ class ChatViewModel extends ChangeNotifier {
     final user = _auth.currentUser;
     if (user == null) {
       isOrganizer = false;
+      notifyListeners();
       return;
     }
     try {
@@ -84,6 +85,7 @@ class ChatViewModel extends ChangeNotifier {
     } catch (_) {
       isOrganizer = false;
     }
+    notifyListeners();
   }
 
   Future<void> sendMessage(String text) async {
