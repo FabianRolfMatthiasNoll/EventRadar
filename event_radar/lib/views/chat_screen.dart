@@ -7,7 +7,7 @@ import '../widgets/chat/chat_input_field.dart';
 import '../widgets/chat/survey_bubble.dart';
 import '../widgets/chat/survey_list_sheet.dart';
 
-class ChatScreen extends StatelessWidget {
+class ChatScreen extends StatefulWidget {
   final String eventId;
   final String channelId;
   final String channelName;
@@ -22,19 +22,46 @@ class ChatScreen extends StatelessWidget {
   });
 
   @override
+  _ChatScreenState createState() => _ChatScreenState();
+}
+
+class _ChatScreenState extends State<ChatScreen> {
+  late final ScrollController _scrollController;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider<ChatViewModel>(
       create:
           (_) => ChatViewModel(
-            eventId: eventId,
-            channelId: channelId,
-            isAnnouncement: isAnnouncement,
+            eventId: widget.eventId,
+            channelId: widget.channelId,
+            isAnnouncement: widget.isAnnouncement,
           ),
       child: Consumer<ChatViewModel>(
         builder: (context, vm, _) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (_scrollController.hasClients) {
+              _scrollController.jumpTo(
+                _scrollController.position.maxScrollExtent,
+              );
+            }
+          });
+
           return Scaffold(
             appBar: AppBar(
-              title: Text(channelName),
+              title: Text(widget.channelName),
               actions: [
                 IconButton(
                   icon: const Icon(Icons.poll),
@@ -59,6 +86,7 @@ class ChatScreen extends StatelessWidget {
                         children: [
                           Expanded(
                             child: ListView.builder(
+                              controller: _scrollController,
                               padding: const EdgeInsets.symmetric(
                                 vertical: 8,
                                 horizontal: 12,
@@ -70,8 +98,8 @@ class ChatScreen extends StatelessWidget {
                                 // Survey‐Nachricht
                                 if (msg.type == "survey") {
                                   return SurveyBubble(
-                                    eventId: eventId,
-                                    channelId: channelId,
+                                    eventId: widget.eventId,
+                                    channelId: widget.channelId,
                                     message: msg,
                                     votes: vm.votesFor(msg.id),
                                     currentUserId: vm.currentUserId,
@@ -87,7 +115,6 @@ class ChatScreen extends StatelessWidget {
                                   );
                                 }
 
-                                // Normale Text‐Nachricht
                                 final isMe = msg.senderId == vm.currentUserId;
                                 final profile = vm.participantMap[msg.senderId];
                                 final showSender =
@@ -106,8 +133,8 @@ class ChatScreen extends StatelessWidget {
                             ),
                           ),
 
-                          // Input nur in Chat oder als Organisator im Announcement
-                          if (!isAnnouncement || vm.isOrganizer)
+                          // Eingabefeld nur in Chat-Räumen oder als Organizer im Announcement-Channel
+                          if (!widget.isAnnouncement || vm.isOrganizer)
                             ChatInputField(
                               onSend: vm.sendMessage,
                               onCreateSurvey:
