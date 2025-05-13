@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/models/event.dart';
@@ -66,6 +67,8 @@ class _EventOverviewContent extends StatelessWidget {
             if (isParticipant) _buildAnnouncementsTile(),
             const SizedBox(height: 16),
             _buildMap(context, vm, event, isOrganizer),
+            const SizedBox(height: 16),
+            _buildShareButton(vm.eventId),
             const SizedBox(height: 16),
             _buildJoinLeaveButton(context, vm, event, isParticipant),
           ],
@@ -416,6 +419,29 @@ class _EventOverviewContent extends StatelessWidget {
           width: 600,
           height: 150,
           zoom: 15,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildShareButton(String eventId) {
+    return Center(
+      child: FilledButton(
+        onPressed: () {
+          SharePlus.instance.share(
+            ShareParams(
+              uri: Uri(
+                scheme: "https",
+                host: "eventradar-3a7c6.web.app",
+                path: "event-overview/$eventId",
+              ),
+            ),
+          );
+        },
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          spacing: 16,
+          children: [Icon(Icons.share), Text("Event teilen")],
         ),
       ),
     );
