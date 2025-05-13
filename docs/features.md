@@ -12,6 +12,7 @@
       - Nicht letzter Admin -> User wird gewarnt Status zu verlieren
     - Bearbeitung des Events inPlace als Organisator.
       - Nutzbarkeit der normalen Features gegeben (Klick auf Map fragt ob in GoogleMaps öffnen oder bearbeiten)
+    - Events über Links teilen
 
 - User Funktionaliäten
     - Erstellung Account
