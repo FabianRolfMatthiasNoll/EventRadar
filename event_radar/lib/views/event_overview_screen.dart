@@ -427,7 +427,7 @@ class _EventOverviewContent extends StatelessWidget {
                           final confirm = await showConfirmationDialog(
                             context,
                             'Chat-Raum löschen',
-                            'Möchtest du "${ch.name}" wirklich löschen?',
+                            'Möchtest du "${ch.name}" wirklich löschen? Damit löscht du auch alle Nachrichten in diesem Chat.',
                           );
                           if (confirm) {
                             await chVm.deleteChat(ch.id);
