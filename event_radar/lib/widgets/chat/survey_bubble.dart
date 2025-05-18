@@ -28,7 +28,8 @@ class SurveyBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final meta = (message.metadata ?? {});
+    final theme = Theme.of(context);
+    final meta = (message.metadata);
     final question = meta['question'] as String? ?? '';
     final options =
         (meta['options'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [];
@@ -42,7 +43,10 @@ class SurveyBubble extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: closed ? Colors.grey[200] : Colors.orange[50],
+            color:
+                closed
+                    ? theme.colorScheme.surfaceVariant
+                    : theme.colorScheme.primaryContainer,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Column(
