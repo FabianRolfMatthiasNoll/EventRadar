@@ -110,7 +110,6 @@ class ChatService {
     String question,
     List<Map<String, String>> options, // [{id, text}, …]
   ) {
-    print('📊 createSurvey: event=$eventId channel=$channelId');
     return _firestore
         .collection('events')
         .doc(eventId)
@@ -132,9 +131,6 @@ class ChatService {
     String messageId,
     String optionId,
   ) {
-    print(
-      '🗳️ voteSurvey: event=$eventId channel=$channelId message=$messageId',
-    );
     final voteRef = _firestore
         .collection('events')
         .doc(eventId)
