@@ -135,13 +135,7 @@ class MyApp extends StatelessWidget {
             routes: [
               GoRoute(
                 path: '/profile-settings',
-                builder: (context, state) {
-                  final user = AuthService().currentUser();
-                  return ProfileSettingsScreen(
-                    email: user?.email,
-                    name: user?.displayName,
-                  );
-                },
+                builder: (context, state) => ProfileSettingsScreen(),
                 redirect: (context, state) {
                   // redirect to login if not logged in
                   final loggedIn = AuthService().currentUser() != null;
