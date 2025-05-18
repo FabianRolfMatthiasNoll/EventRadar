@@ -70,6 +70,7 @@ class SurveyBubble extends StatelessWidget {
   ) {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       builder:
           (_) => SurveyDetailSheet(
             eventId: eventId,

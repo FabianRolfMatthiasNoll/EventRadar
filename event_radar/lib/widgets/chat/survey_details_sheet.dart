@@ -44,58 +44,79 @@ class SurveyDetailSheet extends StatelessWidget {
       stream: votesStream,
       builder: (context, snap) {
         final votes = snap.data?.docs ?? [];
+
         return Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(question, style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: 12),
-              ...options.map((opt) {
-                final optId = opt['id'] as String;
-                final count =
-                    votes.where((v) {
-                      final data = v.data() as Map<String, dynamic>? ?? {};
-                      return data['optionId'] == optId;
-                    }).length;
-                final isMyVote = votes.any(
-                  (v) =>
-                      v.id == currentUserId &&
-                      (v.data() as Map<String, dynamic>)['optionId'] == optId,
-                );
-                return ListTile(
-                  title: Text(opt['text'] as String),
-                  trailing: Text(count.toString()),
-                  leading:
-                      closed
-                          ? null
-                          : Radio<String>(
-                            value: optId,
-                            groupValue: isMyVote ? optId : null,
-                            onChanged: (_) => onVote(optId),
-                          ),
-                );
-              }),
-              const SizedBox(height: 8),
-              if (onClose != null && !closed)
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.lock),
-                  label: const Text('Umfrage schließen'),
-                  onPressed: () {
-                    Navigator.pop(context);
-                    onClose!();
-                  },
-                ),
-              if (onDelete != null)
-                TextButton.icon(
-                  icon: const Icon(Icons.delete),
-                  label: const Text('Löschen'),
-                  onPressed: () {
-                    Navigator.pop(context);
-                    onDelete!();
-                  },
-                ),
-            ],
+          // Platz für Keyboard und Abstand nach oben/unten
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+            left: 16,
+            right: 16,
+            top: 16,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Frage: unbegrenzt lang
+                Text(question, style: Theme.of(context).textTheme.titleLarge),
+                const SizedBox(height: 16),
+
+                // Optionen als einfache ListTiles
+                ...options.map((opt) {
+                  final optId = opt['id'] as String;
+                  final text = opt['text'] as String? ?? '';
+                  final count =
+                      votes.where((v) {
+                        final data = v.data() as Map<String, dynamic>? ?? {};
+                        return data['optionId'] == optId;
+                      }).length;
+                  final isMyVote = votes.any((v) {
+                    final data = v.data() as Map<String, dynamic>? ?? {};
+                    return v.id == currentUserId && data['optionId'] == optId;
+                  });
+
+                  return ListTile(
+                    title: Text(text),
+                    leading:
+                        closed
+                            ? null
+                            : Radio<String>(
+                              value: optId,
+                              groupValue: isMyVote ? optId : null,
+                              onChanged: (_) => onVote(optId),
+                            ),
+                    trailing: Text(
+                      count.toString(),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  );
+                }).toList(),
+
+                const SizedBox(height: 16),
+
+                // Aktionen
+                if (onClose != null && !closed)
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.lock),
+                    label: const Text('Umfrage schließen'),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      onClose!();
+                    },
+                  ),
+                if (onDelete != null)
+                  TextButton.icon(
+                    icon: const Icon(Icons.delete),
+                    label: const Text('Löschen'),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      onDelete!();
+                    },
+                  ),
+              ],
+            ),
           ),
         );
       },

@@ -19,45 +19,83 @@ class _SurveyCreationDialogState extends State<SurveyCreationDialog> {
     TextEditingController(),
   ];
 
+  static const int _maxQuestionLength = 200;
+  static const int _maxOptionLength = 50;
+  static const int _maxOptions = 5;
+
   void _addOption() {
-    setState(() => _optCtrls.add(TextEditingController()));
+    if (_optCtrls.length < _maxOptions) {
+      setState(() => _optCtrls.add(TextEditingController()));
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Umfrage erstellen'),
+      title: const Text('Neue Umfrage'),
       content: SingleChildScrollView(
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
+            // Frage
             TextField(
               controller: _qCtrl,
-              decoration: const InputDecoration(labelText: 'Frage'),
-            ),
-            const SizedBox(height: 8),
-            ..._optCtrls.map(
-              (c) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: TextField(
-                  controller: c,
-                  decoration: const InputDecoration(labelText: 'Option'),
-                ),
+              maxLength: _maxQuestionLength,
+              maxLines: null,
+              decoration: const InputDecoration(
+                labelText: 'Frage',
+                counterText: '', // counter unten ausblenden, alternativ null
               ),
             ),
-            TextButton.icon(
-              onPressed: _addOption,
-              icon: const Icon(Icons.add),
-              label: const Text('Option hinzufügen'),
-            ),
+            const SizedBox(height: 16),
+
+            // Antwort-Optionen
+            ...List.generate(_optCtrls.length, (i) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: TextField(
+                  controller: _optCtrls[i],
+                  maxLength: _maxOptionLength,
+                  decoration: InputDecoration(
+                    labelText: 'Option ${i + 1}',
+                    counterText: '',
+                    suffixIcon:
+                        i >= 2
+                            ? IconButton(
+                              icon: const Icon(Icons.delete),
+                              onPressed: () {
+                                setState(() {
+                                  _optCtrls.removeAt(i);
+                                });
+                              },
+                            )
+                            : null,
+                  ),
+                ),
+              );
+            }),
+
+            // „+ Option“ erst aktivieren, wenn unter dem Limit
+            if (_optCtrls.length < _maxOptions)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  icon: const Icon(Icons.add),
+                  label: Text(
+                    'Option hinzufügen (${_optCtrls.length}/$_maxOptions)',
+                  ),
+                  onPressed: _addOption,
+                ),
+              ),
           ],
         ),
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.pop(context),
+          onPressed: Navigator.of(context).pop,
           child: const Text('Abbrechen'),
         ),
-        TextButton(
+        ElevatedButton(
           onPressed: () {
             final question = _qCtrl.text.trim();
             final options =
