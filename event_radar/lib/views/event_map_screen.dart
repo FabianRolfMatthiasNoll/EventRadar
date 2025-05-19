@@ -1,18 +1,17 @@
 import 'dart:async';
-import 'dart:ffi';
 import 'dart:math';
 import 'dart:ui' as ui;
 
-import 'package:event_radar/widgets/avatar_or_placeholder.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:event_radar/core/services/auth_service.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 
 import '../core/models/event.dart';
 import '../core/providers/location_provider.dart';
 import '../core/viewmodels/event_map_viewmodel.dart';
+import '../widgets/event_tile.dart';
 
 class EventMapScreen extends StatefulWidget {
   const EventMapScreen({super.key});
@@ -25,6 +24,9 @@ class _EventMapScreenState extends State<EventMapScreen> {
   Set<Marker> _markers = {};
   Map<String, LatLng> _clusterCenters = {}; // Cluster-Zentren
   Map<String, List<Event>> clusteredEvents = {};
+  final user = AuthService().currentUser();
+  GoogleMapController? _mapController;
+  Position? userPosition;
 
   static const Map<int, double> zoomToClusterRadius = {
     17: 0.001,
@@ -43,19 +45,11 @@ class _EventMapScreenState extends State<EventMapScreen> {
     4: 300,
     3: 600,
   };
-  Double? zoomState;
-  Timer? _debounce;
 
-  void _onCameraMove(CameraPosition position) {
-    print(position.zoom);
-    if (_debounce?.isActive ?? false) _debounce!.cancel();
-    _debounce = Timer(const Duration(milliseconds: 300), () {
-      _updateMarkers(
-        context.read<EventMapViewModel>().events,
-        context,
-        position.zoom,
-      );
-    });
+  @override
+  void dispose() {
+    _mapController?.dispose();
+    super.dispose();
   }
 
   void _updateMarkers(
@@ -86,9 +80,8 @@ class _EventMapScreenState extends State<EventMapScreen> {
           );
         } else {
           final event = clusterEvents.first;
-          final user = FirebaseAuth.instance.currentUser;
-          final uid = user?.uid;
-          final isMember = uid != null && event.participants.contains(uid);
+          final isMember =
+              user?.uid != null && event.participants.contains(user?.uid);
           final hue =
               isMember
                   ? BitmapDescriptor.hueGreen
@@ -173,9 +166,14 @@ class _EventMapScreenState extends State<EventMapScreen> {
 
   Future<BitmapDescriptor> _createClusterIcon(int count) async {
     const size = 70.0;
+    const padding = 10.0; // Zusätzlicher Platz für den Schatten
+    final totalSize = size + 2 * padding; // Gesamtgröße der Zeichenfläche
+
     final pictureRecorder = ui.PictureRecorder();
     final canvas = Canvas(pictureRecorder);
-    final center = Offset(size / 2, size / 2);
+
+    // Zentriere das Icon innerhalb der größeren Fläche
+    final center = Offset(totalSize / 2, totalSize / 2);
 
     // Schatten als separater Kreis (ohne .withOpacity)
     final shadowPaint =
@@ -227,11 +225,9 @@ class _EventMapScreenState extends State<EventMapScreen> {
       ),
     );
 
-    // Icon erzeugen
-    final image = await pictureRecorder.endRecording().toImage(
-      size.toInt(),
-      size.toInt(),
-    );
+    // Fertigstellen des Bildes
+    final picture = pictureRecorder.endRecording();
+    final image = await picture.toImage(totalSize.toInt(), totalSize.toInt());
     final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
     final bytes = byteData!.buffer.asUint8List();
 
@@ -239,7 +235,6 @@ class _EventMapScreenState extends State<EventMapScreen> {
   }
 
   void _showClusterDetails(BuildContext context, List<Event> events) {
-    // Events in promoted und andere aufteilen
     final promotedEvents = events.where((e) => e.promoted == true).toList();
     final otherEvents = events.where((e) => e.promoted != true).toList();
 
@@ -270,8 +265,11 @@ class _EventMapScreenState extends State<EventMapScreen> {
                       ),
                     ),
                   ...promotedEvents.map(
-                    (event) =>
-                        _buildEventTile(context, event, isPromoted: true),
+                    (event) => EventTile(
+                      event: event,
+                      userPosition: userPosition,
+                      isPromoted: true,
+                    ),
                   ),
                   if (otherEvents.isNotEmpty)
                     Padding(
@@ -283,59 +281,13 @@ class _EventMapScreenState extends State<EventMapScreen> {
                       ),
                     ),
                   ...otherEvents.map(
-                    (event) => _buildEventTile(context, event),
+                    (event) =>
+                        EventTile(event: event, userPosition: userPosition),
                   ),
                 ],
               );
             },
           ),
-    );
-  }
-
-  Widget _buildEventTile(
-    BuildContext context,
-    Event event, {
-    bool isPromoted = false,
-  }) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: isPromoted ? Colors.amber.shade50 : Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow:
-            isPromoted
-                ? [
-                  BoxShadow(
-                    color: const Color.fromARGB(255, 255, 212, 121),
-                    blurRadius: 6,
-                    offset: const Offset(0, 3),
-                  ),
-                ]
-                : [],
-      ),
-      child: ListTile(
-        leading: Stack(
-          alignment: Alignment.topRight,
-          children: [
-            AvatarOrPlaceholder(imageUrl: event.image, name: event.title),
-            if (isPromoted)
-              const Icon(Icons.star, color: Colors.amber, size: 18),
-          ],
-        ),
-        title: Text(
-          event.title,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: isPromoted ? Colors.orange[900] : null,
-          ),
-        ),
-        subtitle: Text(
-          event.description ?? "Keine Beschreibung vorhanden",
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
-        onTap: () => context.push("/event-overview/${event.id}"),
-      ),
     );
   }
 
@@ -349,19 +301,10 @@ class _EventMapScreenState extends State<EventMapScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                ListTile(
-                  leading: AvatarOrPlaceholder(
-                    imageUrl: event.image,
-                    name: event.title,
-                  ),
-                  title: Text(event.title),
-                  subtitle: Text(
-                    event.description ?? "Keine Beschreibung vorhanden",
-                  ),
-                ),
-                ElevatedButton(
-                  onPressed: () => context.push("/event-overview/${event.id}"),
-                  child: const Text("Zum Event"),
+                EventTile(
+                  event: event,
+                  userPosition: userPosition,
+                  isPromoted: event.promoted,
                 ),
               ],
             ),
@@ -369,9 +312,13 @@ class _EventMapScreenState extends State<EventMapScreen> {
     );
   }
 
+  Future<double> getZoomLevel() async {
+    return _mapController?.getZoomLevel() ?? Future.value(15.0);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final userPosition = Provider.of<LocationProvider>(context).currentPosition;
+    userPosition = Provider.of<LocationProvider>(context).currentPosition;
     if (userPosition == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
@@ -383,13 +330,25 @@ class _EventMapScreenState extends State<EventMapScreen> {
           }
           return GoogleMap(
             initialCameraPosition: CameraPosition(
-              target: LatLng(userPosition.latitude, userPosition.longitude),
+              target: LatLng(userPosition!.latitude, userPosition!.longitude),
               zoom: 15,
             ),
             markers: _markers,
             myLocationEnabled: true,
             zoomControlsEnabled: true,
-            onCameraMove: _onCameraMove,
+            onMapCreated: (controller) {
+              _mapController = controller;
+            },
+            onCameraIdle: () async {
+              var zoom = await getZoomLevel();
+              if (context.mounted) {
+                _updateMarkers(
+                  context.read<EventMapViewModel>().events,
+                  context,
+                  zoom,
+                );
+              }
+            },
           );
         },
       ),
