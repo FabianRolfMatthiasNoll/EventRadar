@@ -85,25 +85,25 @@ class _EventOverviewContent extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 10),
                   _buildDescription(context, vm, event, isOrganizer),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 10),
                   _buildDateTile(context, vm, event, isOrganizer),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 10),
                   _buildParticipantsTile(context, vm, event),
                   if (isParticipant) ...[
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 10),
                     _buildAnnouncementsTile(context, vm, chVm, isOrganizer),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 10),
                     _buildChatRoomsSection(context, vm, chVm, isOrganizer),
                   ],
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 10),
                   _buildMap(context, vm, event, isOrganizer),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 10),
                   isParticipant
                       ? _buildShareButton(vm.eventId)
                       : _buildJoinButton(context, event, currentUser!.uid),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 10),
                 ],
               ),
             ),
@@ -366,7 +366,7 @@ class _EventOverviewContent extends StatelessWidget {
   ) {
     if (chVm.isLoading) {
       return ListTile(
-        leading: const Icon(Icons.announcement),
+        leading: const Icon(Icons.campaign),
         title: const Text('Announcements'),
         trailing: SizedBox(
           width: 24,
@@ -379,7 +379,7 @@ class _EventOverviewContent extends StatelessWidget {
 
     if (chVm.error != null) {
       return ListTile(
-        leading: const Icon(Icons.announcement),
+        leading: const Icon(Icons.campaign),
         title: const Text('Announcements'),
         subtitle: Text('Fehler: ${chVm.error}'),
         enabled: false,
@@ -392,7 +392,7 @@ class _EventOverviewContent extends StatelessWidget {
     );
 
     return ListTile(
-      leading: const Icon(Icons.announcement),
+      leading: const Icon(Icons.campaign),
       title: Text(ann.name),
       trailing: const Icon(Icons.arrow_forward_ios),
       onTap: () {
@@ -415,7 +415,7 @@ class _EventOverviewContent extends StatelessWidget {
     }
     if (chVm.error != null) {
       return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(vertical: 10),
         child: Text("Chat-Fehler: ${chVm.error}"),
       );
     }
@@ -426,7 +426,7 @@ class _EventOverviewContent extends StatelessWidget {
     final List<Widget> items = [
       for (final ch in chats)
         ListTile(
-          leading: const Icon(Icons.chat_bubble_outline),
+          leading: const Icon(Icons.chat_bubble_outline_rounded),
           title: Text(ch.name),
           trailing:
               isOrganizer
