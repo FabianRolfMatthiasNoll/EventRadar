@@ -16,12 +16,36 @@ class ChannelsViewModel extends ChangeNotifier {
   }
 
   Future<void> _load() async {
+    isLoading = true;
+    error = null;
+    notifyListeners();
+
     try {
+      // Announcement-Channel immer zuerst
       final annId = await _service.getAnnouncementChannelId(eventId);
-      channels = [ChatChannel(annId, 'Announcements', 'announcement')];
+      channels = [
+        ChatChannel(
+          id: annId,
+          name: 'Announcements',
+          type: ChannelType.announcement,
+        ),
+      ];
+
+      // Alle weiteren Chat-Channels vom Service holen
       final docs = await _service.listChatChannels(eventId);
       channels.addAll(
-        docs.map((d) => ChatChannel(d.id, d['channelName'], d['channelType'])),
+        docs.map((d) {
+          final rawType = d['channelType'] as String? ?? '';
+          final parsedType = ChannelType.values.firstWhere(
+            (e) => e.name == rawType,
+            orElse: () => ChannelType.chat,
+          );
+          return ChatChannel(
+            id: d.id,
+            name: d['channelName'] as String,
+            type: parsedType,
+          );
+        }),
       );
     } catch (e) {
       error = e.toString();

@@ -19,6 +19,7 @@ import '../../widgets/date_time_picker.dart';
 import '../../widgets/image_picker.dart';
 import '../../widgets/main_scaffold.dart';
 import '../../widgets/static_map_snippet.dart';
+import '../core/models/chat_channel.dart';
 import '../core/viewmodels/channels_viewmodel.dart';
 import '../widgets/participant_list_sheet.dart';
 import 'map_picker_screen.dart';
@@ -373,7 +374,7 @@ class _EventOverviewContent extends StatelessWidget {
     }
 
     final ann = chVm.channels.firstWhere(
-      (c) => c.type == 'announcement',
+      (c) => c.type == ChannelType.announcement,
       orElse: () => throw Exception('Announcement-Channel nicht gefunden'),
     );
 
@@ -406,7 +407,8 @@ class _EventOverviewContent extends StatelessWidget {
       );
     }
 
-    final chatOnly = chVm.channels.where((c) => c.type == 'chat').toList();
+    final chatOnly =
+        chVm.channels.where((c) => c.type == ChannelType.chat).toList();
     if (chatOnly.isEmpty) {
       return ListTile(
         leading: const Icon(Icons.add_comment_outlined),
