@@ -40,7 +40,7 @@ class _ChatInputFieldState extends State<ChatInputField> {
           Theme.of(context).bottomSheetTheme.backgroundColor ??
           Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (_) => Wrap(children: const [SurveyCreationDialog()]),
     );
@@ -52,7 +52,6 @@ class _ChatInputFieldState extends State<ChatInputField> {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      // Verhindert Überlappen durch Systemleisten / Keyboard
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         color: Theme.of(context).colorScheme.surfaceContainerHighest,

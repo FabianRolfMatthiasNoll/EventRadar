@@ -1,17 +1,13 @@
-// lib/widgets/chat/survey_creation_dialog.dart
-
 import 'package:flutter/material.dart';
 
-/// Datenmodell für eine Umfrage
 class SurveyData {
   final String question;
   final List<Map<String, String>> options;
   SurveyData(this.question, this.options);
 }
 
-/// Wird in showModalBottomSheet(...) gerendert
 class SurveyCreationDialog extends StatefulWidget {
-  const SurveyCreationDialog({Key? key}) : super(key: key);
+  const SurveyCreationDialog({super.key});
 
   @override
   State<SurveyCreationDialog> createState() => _SurveyCreationDialogState();
@@ -49,7 +45,6 @@ class _SurveyCreationDialogState extends State<SurveyCreationDialog> {
     final theme = Theme.of(context);
 
     return Material(
-      // BottomSheet-Farbe aus dem Theme, runde Ecken oben
       color:
           theme.bottomSheetTheme.backgroundColor ?? theme.colorScheme.surface,
       shape: const RoundedRectangleBorder(
@@ -57,7 +52,6 @@ class _SurveyCreationDialogState extends State<SurveyCreationDialog> {
       ),
       clipBehavior: Clip.antiAlias,
       child: Padding(
-        // Rücksicht auf die Tastatur
         padding: EdgeInsets.only(
           bottom: MediaQuery.of(context).viewInsets.bottom,
           left: 16,
@@ -94,7 +88,6 @@ class _SurveyCreationDialogState extends State<SurveyCreationDialog> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Optionen
                     ...List.generate(_optCtrls.length, (i) {
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 12),
@@ -103,17 +96,19 @@ class _SurveyCreationDialogState extends State<SurveyCreationDialog> {
                           maxLength: _maxOptionLength,
                           decoration: InputDecoration(
                             labelText: 'Option ${i + 1}',
-                            suffixIcon:
-                                i >= 2
-                                    ? IconButton(
-                                      icon: const Icon(Icons.delete),
-                                      onPressed: () {
+                            suffixIcon: IconButton(
+                              icon: const Icon(Icons.close),
+                              color: Colors.red,
+                              tooltip: 'Option löschen',
+                              onPressed:
+                                  _optCtrls.length > 2
+                                      ? () {
                                         setState(() {
                                           _optCtrls.removeAt(i).dispose();
                                         });
-                                      },
-                                    )
-                                    : null,
+                                      }
+                                      : null,
+                            ),
                           ),
                           validator: (value) {
                             final text = value?.trim() ?? '';
@@ -129,7 +124,6 @@ class _SurveyCreationDialogState extends State<SurveyCreationDialog> {
                       );
                     }),
 
-                    // + Option hinzufügen
                     if (_optCtrls.length < _maxOptions)
                       Align(
                         alignment: Alignment.centerLeft,
