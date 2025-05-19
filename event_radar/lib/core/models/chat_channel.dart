@@ -1,4 +1,4 @@
-tenum ChannelType { announcement, chat }
+enum ChannelType { announcement, chat }
 
 class ChatChannel {
   final String id;
