@@ -6,6 +6,7 @@ import '../widgets/chat/chat_bubble.dart';
 import '../widgets/chat/chat_input_field.dart';
 import '../widgets/chat/survey_bubble.dart';
 import '../widgets/chat/survey_list_sheet.dart';
+import '../widgets/main_scaffold.dart';
 
 class ChatScreen extends StatefulWidget {
   final String eventId;
@@ -59,25 +60,23 @@ class _ChatScreenState extends State<ChatScreen> {
             }
           });
 
-          return Scaffold(
-            appBar: AppBar(
-              title: Text(widget.channelName),
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.poll),
-                  tooltip: "Alle Umfragen",
-                  onPressed: () {
-                    final surveys =
-                        vm.messages.where((m) => m.type == "survey").toList();
-                    showModalBottomSheet(
-                      context: context,
-                      isScrollControlled: true,
-                      builder: (_) => SurveyListSheet(surveys: surveys, vm: vm),
-                    );
-                  },
-                ),
-              ],
-            ),
+          return MainScaffold(
+            title: widget.channelName,
+            appBarActions: [
+              IconButton(
+                icon: const Icon(Icons.poll),
+                tooltip: "Alle Umfragen",
+                onPressed: () {
+                  final surveys =
+                      vm.messages.where((m) => m.type == "survey").toList();
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    builder: (_) => SurveyListSheet(surveys: surveys, vm: vm),
+                  );
+                },
+              ),
+            ],
             body: SafeArea(
               child:
                   vm.isLoading
