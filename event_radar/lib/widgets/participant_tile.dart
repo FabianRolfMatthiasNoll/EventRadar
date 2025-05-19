@@ -1,3 +1,4 @@
+import 'package:event_radar/core/services/auth_service.dart';
 import 'package:flutter/material.dart';
 
 import '../core/models/participant.dart';
@@ -19,6 +20,9 @@ class ParticipantTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final currentUser = AuthService().currentUser();
+    final canManage = isOrganizer && participant.uid != currentUser?.uid;
+
     return ListTile(
       leading: AvatarOrPlaceholder(
         imageUrl: participant.photo,
@@ -27,7 +31,7 @@ class ParticipantTile extends StatelessWidget {
       title: Text(participant.name),
       subtitle: Text(participant.role),
       trailing:
-          isOrganizer
+          canManage
               ? PopupMenuButton<ParticipantAction>(
                 onSelected: onAction,
                 itemBuilder:
