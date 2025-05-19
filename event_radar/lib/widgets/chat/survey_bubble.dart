@@ -43,10 +43,7 @@ class SurveyBubble extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color:
-                closed
-                    ? theme.colorScheme.surfaceVariant
-                    : theme.colorScheme.primaryContainer,
+            color: closed ? Colors.grey[200] : Colors.orange[50],
             borderRadius: BorderRadius.circular(12),
           ),
           child: Column(
