@@ -72,30 +72,43 @@ class _EventOverviewContent extends StatelessWidget {
                 ),
               ]
               : [],
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildHeader(context, vm, event, isOrganizer),
-            const SizedBox(height: 16),
-            _buildDescription(context, vm, event, isOrganizer),
-            _buildDateTile(context, vm, event, isOrganizer),
-            _buildParticipantsTile(context, vm, event),
-            if (isParticipant) ...[
-              _buildAnnouncementsTile(context, vm, chVm, isOrganizer),
-              const SizedBox(height: 8),
-              _buildChatRoomsSection(context, vm, chVm, isOrganizer),
-              const SizedBox(height: 16),
-            ],
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: _buildHeader(context, vm, event, isOrganizer),
+          ),
 
-            _buildMap(context, vm, event, isOrganizer),
-            const SizedBox(height: 16),
-            isParticipant
-                ? _buildShareButton(vm.eventId)
-                : _buildJoinButton(context, event, currentUser!.uid),
-          ],
-        ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 16),
+                  _buildDescription(context, vm, event, isOrganizer),
+                  const SizedBox(height: 16),
+                  _buildDateTile(context, vm, event, isOrganizer),
+                  const SizedBox(height: 16),
+                  _buildParticipantsTile(context, vm, event),
+                  if (isParticipant) ...[
+                    const SizedBox(height: 16),
+                    _buildAnnouncementsTile(context, vm, chVm, isOrganizer),
+                    const SizedBox(height: 8),
+                    _buildChatRoomsSection(context, vm, chVm, isOrganizer),
+                  ],
+                  const SizedBox(height: 16),
+                  _buildMap(context, vm, event, isOrganizer),
+                  const SizedBox(height: 16),
+                  isParticipant
+                      ? _buildShareButton(vm.eventId)
+                      : _buildJoinButton(context, event, currentUser!.uid),
+                  const SizedBox(height: 16),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -402,63 +415,64 @@ class _EventOverviewContent extends StatelessWidget {
     }
     if (chVm.error != null) {
       return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Text('Chat-Fehler: ${chVm.error}'),
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Text("Chat-Fehler: ${chVm.error}"),
       );
     }
 
-    final chatOnly =
+    final chats =
         chVm.channels.where((c) => c.type == ChannelType.chat).toList();
-    if (chatOnly.isEmpty) {
-      return ListTile(
-        leading: const Icon(Icons.add_comment_outlined),
-        title: const Text('Kein Chat-Raum vorhanden.'),
-        onTap:
-            isOrganizer
-                ? () async {
-                  final name = await showDialog<String>(
-                    context: context,
-                    builder: (ctx) => _ChatNameDialog(),
-                  );
-                  if (name != null && name.trim().isNotEmpty) {
-                    await chVm.createChat(name.trim());
-                  }
-                }
-                : null,
+
+    final List<Widget> items = [
+      for (final ch in chats)
+        ListTile(
+          leading: const Icon(Icons.chat_bubble_outline),
+          title: Text(ch.name),
+          trailing:
+              isOrganizer
+                  ? IconButton(
+                    icon: const Icon(Icons.delete_outline),
+                    onPressed: () async {
+                      final confirm = await showConfirmationDialog(
+                        context,
+                        "Chat-Raum löschen",
+                        'Möchtest du "${ch.name}" wirklich löschen? '
+                            'Damit werden auch alle Nachrichten gelöscht.',
+                      );
+                      if (confirm) {
+                        await chVm.deleteChat(ch.id);
+                      }
+                    },
+                  )
+                  : null,
+          onTap: () {
+            context.push(
+              '/event-overview/${vm.event!.id}/chat/${ch.id}',
+              extra: ch.name,
+            );
+          },
+        ),
+    ];
+
+    if (isOrganizer && chats.length < 3) {
+      items.add(
+        ListTile(
+          leading: const Icon(Icons.add_comment_outlined),
+          title: const Text("Neuen Chat-Raum erstellen"),
+          onTap: () async {
+            final name = await showDialog<String>(
+              context: context,
+              builder: (ctx) => _ChatNameDialog(),
+            );
+            if (name != null && name.trim().isNotEmpty) {
+              await chVm.createChat(name.trim());
+            }
+          },
+        ),
       );
     }
 
-    return Column(
-      children:
-          chatOnly.map((ch) {
-            return ListTile(
-              leading: const Icon(Icons.chat_bubble_outline),
-              title: Text(ch.name),
-              trailing:
-                  isOrganizer
-                      ? IconButton(
-                        icon: const Icon(Icons.delete_outline),
-                        onPressed: () async {
-                          final confirm = await showConfirmationDialog(
-                            context,
-                            'Chat-Raum löschen',
-                            'Möchtest du "${ch.name}" wirklich löschen? Damit löscht du auch alle Nachrichten in diesem Chat.',
-                          );
-                          if (confirm) {
-                            await chVm.deleteChat(ch.id);
-                          }
-                        },
-                      )
-                      : null,
-              onTap: () {
-                context.push(
-                  '/event-overview/${vm.event!.id}/chat/${ch.id}',
-                  extra: ch.name,
-                );
-              },
-            );
-          }).toList(),
-    );
+    return Column(children: items);
   }
 
   Widget _buildMap(
