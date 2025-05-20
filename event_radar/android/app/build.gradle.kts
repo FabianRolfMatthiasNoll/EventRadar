@@ -23,8 +23,8 @@ android {
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
 
         // ← Hier unbedingt aktivieren, sonst beschwert sich
         // das plugin flutter_local_notifications über fehlendes Desugaring
