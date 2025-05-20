@@ -29,9 +29,9 @@ class AvatarOrPlaceholder extends StatelessWidget {
     return CircleAvatar(
       radius: radius,
       backgroundImage:
-      imageUrl.startsWith('http') ? NetworkImage(imageUrl) : null,
+          imageUrl.startsWith('http') ? NetworkImage(imageUrl) : null,
       child:
-      !imageUrl.startsWith('http') ? Text(getImagePlaceholder(name)) : null,
+          !imageUrl.startsWith('http') ? Text(getImagePlaceholder(name)) : null,
     );
   }
 }
