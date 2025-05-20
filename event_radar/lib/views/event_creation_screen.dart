@@ -1,3 +1,4 @@
+import 'package:event_radar/core/models/event.dart';
 import 'package:event_radar/widgets/image_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -92,6 +93,7 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                               decoration: const InputDecoration(
                                 labelText: 'Event Name',
                               ),
+                              maxLength: Event.maxTitleLength,
                               onChanged: (value) => vm.title = value,
                               validator: (value) {
                                 if (value == null || value.isEmpty) {
@@ -151,7 +153,7 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                         decoration: const InputDecoration(
                           labelText: 'Beschreibung (optional)',
                         ),
-                        maxLines: 3,
+                        maxLength: Event.maxDescriptionLength,
                         onChanged: (value) => vm.description = value,
                       ),
                       const SizedBox(height: 16.0),
