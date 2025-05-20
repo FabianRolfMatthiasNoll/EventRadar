@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:add_2_calendar/add_2_calendar.dart' as add_2_calender;
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
@@ -232,17 +233,64 @@ class _EventOverviewContent extends StatelessWidget {
               )
               : Text(formatDateTime(event.startDate)),
       onTap:
-          isOrganizer ? () => _showDatePickerSheet(context, vm, event) : null,
+          isOrganizer
+              ? () => _showAdminDatePickerSheet(context, vm, event)
+              : () => _showUserDatePickerSheet(context, event),
     );
   }
 
-  void _showDatePickerSheet(
+  void _showAdminDatePickerSheet(
+    BuildContext context,
+    EventOverviewViewModel vm,
+    Event event,
+  ) async {
+    final result = await showDialog<String>(
+      context: context,
+      builder:
+          (ctx) => SimpleDialog(
+            title: const Text("Aktion auswählen"),
+            children: [
+              SimpleDialogOption(
+                onPressed: () => Navigator.of(ctx).pop('addToCalendar'),
+                child: const Text("Zum Kalender hinzufügen"),
+              ),
+              SimpleDialogOption(
+                onPressed: () => Navigator.of(ctx).pop('editDate'),
+                child: const Text("Datum bearbeiten"),
+              ),
+              SimpleDialogOption(
+                onPressed: () => Navigator.of(ctx).pop(null),
+                child: const Text("Abbrechen"),
+              ),
+            ],
+          ),
+    );
+
+    if (result == 'addToCalendar') {
+      // Kalenderoption ausführen
+      addToCalendar(
+        event.title,
+        event.startDate,
+        event.endDate ?? event.startDate.add(const Duration(hours: 2)),
+        event.location as String,
+        event.description,
+      );
+    } else if (result == 'editDate') {
+      // Datum bearbeiten
+      if (context.mounted) {
+        _showDateEditor(context, vm, event);
+      }
+    }
+  }
+
+  void _showDateEditor(
     BuildContext context,
     EventOverviewViewModel vm,
     Event event,
   ) {
     DateTime? newStart;
     DateTime? newEnd;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -299,6 +347,47 @@ class _EventOverviewContent extends StatelessWidget {
             ),
           ),
     );
+  }
+
+  void _showUserDatePickerSheet(BuildContext context, Event event) {
+    addToCalendar(
+      event.title,
+      event.startDate,
+      event.endDate ?? event.startDate.add(const Duration(hours: 2)),
+      event.location as String,
+      event.description,
+    );
+  }
+
+  void addToCalendar(
+    String title,
+    DateTime startDate,
+    DateTime endDate,
+    String location,
+    String? description,
+  ) {
+    var titleParam = title;
+    var descriptionParam = description;
+    var locationParam = location;
+    if (titleParam.isEmpty) {
+      titleParam = "Event from EventRadar";
+    }
+    if (description == null || description.isEmpty) {
+      description = "Have fun and enjoy!";
+    }
+    if (location.isEmpty) {
+      description = "Check EventRadar for current location";
+    }
+    final event = add_2_calender.Event(
+      title: titleParam,
+      description: descriptionParam,
+      location: locationParam,
+      startDate: startDate,
+      endDate: endDate,
+      allDay: false,
+    );
+
+    add_2_calender.Add2Calendar.addEvent2Cal(event);
   }
 
   Widget _buildParticipantsTile(
