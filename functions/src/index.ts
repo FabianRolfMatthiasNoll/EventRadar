@@ -87,6 +87,7 @@ export const onAnnouncementCreated = functions
       data: {
         click_action: "FLUTTER_NOTIFICATION_CLICK",
         eventId,
+        channelId,
         messageId: msgId,
         senderId: msgData.senderId || "",
       },
@@ -98,7 +99,6 @@ export const onAnnouncementCreated = functions
         },
       },
     };
-
     // 7) Push versenden
     try {
       const resp = await admin.messaging().send(payload);

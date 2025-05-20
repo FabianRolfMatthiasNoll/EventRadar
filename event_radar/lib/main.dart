@@ -272,18 +272,16 @@ class _MyAppState extends State<MyApp> {
       final senderId = data['senderId'] as String?;
       final myUid = AuthService().currentUser()?.uid;
 
-      // eigene Nachricht ignorieren
-      if (senderId == myUid) return;
-      if (eventId == null || channelId == null) return;
+      if (eventId == null || channelId == null || senderId == myUid) return;
 
-      // Navigation direkt zum Announcement-Chat
-      context.go(
+      // use the router, not context.go
+      _router.go(
         '/event-overview/$eventId/chat/$channelId',
         extra: 'Announcements',
       );
     });
 
-    // initialer Tap (App komplett geschlossen)
+    // when cold‐start via tap
     FirebaseMessaging.instance.getInitialMessage().then((msg) {
       final data = msg?.data;
       final eventId = data?['eventId'] as String?;
@@ -292,11 +290,11 @@ class _MyAppState extends State<MyApp> {
       final myUid = AuthService().currentUser()?.uid;
 
       if (msg != null &&
-          senderId != myUid &&
           eventId != null &&
-          channelId != null) {
+          channelId != null &&
+          senderId != myUid) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          context.go(
+          _router.go(
             '/event-overview/$eventId/chat/$channelId',
             extra: 'Announcements',
           );
