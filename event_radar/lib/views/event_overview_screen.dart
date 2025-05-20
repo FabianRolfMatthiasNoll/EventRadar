@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -695,6 +696,9 @@ class _EventOverviewContent extends StatelessWidget {
         // Call Cloud Function to delete the event entirely
         try {
           await EventService().deleteEvent(event.id!);
+          await FirebaseMessaging.instance.unsubscribeFromTopic(
+            'event_${event.id}_announcements',
+          );
           if (!context.mounted) return;
           Navigator.of(context).pop();
           ScaffoldMessenger.of(
@@ -720,6 +724,9 @@ class _EventOverviewContent extends StatelessWidget {
 
     try {
       await EventService().leaveEvent(event.id!, userId);
+      await FirebaseMessaging.instance.unsubscribeFromTopic(
+        'event_${event.id}_announcements',
+      );
       if (!context.mounted) return;
       ScaffoldMessenger.of(
         context,
@@ -749,6 +756,9 @@ class _EventOverviewContent extends StatelessWidget {
 
     try {
       await EventService().joinEvent(event.id!, userId);
+      await FirebaseMessaging.instance.subscribeToTopic(
+        'event_${event.id}_announcements',
+      );
       if (!context.mounted) return;
       ScaffoldMessenger.of(
         context,

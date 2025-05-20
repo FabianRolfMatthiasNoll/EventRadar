@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../core/providers/notification_provider.dart';
 import '../core/viewmodels/chat_viewmodel.dart';
 import '../widgets/chat/chat_bubble.dart';
 import '../widgets/chat/chat_input_field.dart';
@@ -28,6 +29,22 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   late final ScrollController _scrollController;
+  NotificationProvider? _notificationProvider;
+  bool _didSetActive = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_didSetActive && widget.isAnnouncement) {
+      // Provider holen und speichern
+      _notificationProvider = context.read<NotificationProvider>();
+      _notificationProvider!.setActiveAnnouncement(
+        widget.eventId,
+        widget.channelId,
+      );
+      _didSetActive = true;
+    }
+  }
 
   @override
   void initState() {
@@ -37,6 +54,13 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   void dispose() {
+    // Wenn wir einen NotificationProvider haben, löschen wir die
+    // aktive Announcement-Markierung erst im nächsten Frame.
+    if (_notificationProvider != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _notificationProvider!.setActiveAnnouncement(null, null);
+      });
+    }
     _scrollController.dispose();
     super.dispose();
   }
