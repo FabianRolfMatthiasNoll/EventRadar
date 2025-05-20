@@ -54,6 +54,7 @@ dependencies:
   shared_preferences: ^2.1.0
   collection: any
   cloud_functions: ^5.4.0
+  share_plus: ^11.0.0
 
 dev_dependencies:
   flutter_test:
