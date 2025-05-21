@@ -82,7 +82,7 @@ export const onAnnouncementCreated = functions
 
     // 5) Notification Titel & Body
     const title = `${eventTitle}`;
-    let body = `${senderName} hat geschrieben: ${text}`;
+    let body = `${senderName}: ${text}`;
 
     if (msgData.type === "update") {
       body = `${text}`;
