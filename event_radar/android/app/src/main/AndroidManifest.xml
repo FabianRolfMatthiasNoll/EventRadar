@@ -69,6 +69,11 @@
                 <data android:scheme="http" android:host="eventradar-3a7c6.web.app"/>
                 <data android:scheme="https"/>
             </intent-filter>
+
+            <intent-filter>
+                <action android:name="FLUTTER_NOTIFICATION_CLICK"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+            </intent-filter>
         </activity>
 
         <!-- Flutter embedding meta-data -->

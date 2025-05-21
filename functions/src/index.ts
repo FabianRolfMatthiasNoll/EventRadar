@@ -52,7 +52,11 @@ export const onAnnouncementCreated = functions
     }
 
     // 2) Announcement-Daten
-    const msgData = snap.data() as { text?: string; senderId?: string };
+    const msgData = snap.data() as {
+        text?: string;
+        senderId?: string;
+        type?: string
+    };
     const text = (msgData.text || "").trim();
 
     // 3) Event-Titel holen
@@ -77,8 +81,12 @@ export const onAnnouncementCreated = functions
     }
 
     // 5) Notification Titel & Body
-    const title = `Neue Ankündigung in "${eventTitle}"`;
-    const body = `${senderName} hat geschrieben: ${text}`;
+    const title = `${eventTitle}`;
+    let body = `${senderName} hat geschrieben: ${text}`;
+
+    if (msgData.type === "update") {
+      body = `${text}`;
+    }
 
     // 6) Payload für Topic-Push
     const payload: admin.messaging.Message = {

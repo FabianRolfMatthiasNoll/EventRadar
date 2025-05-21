@@ -1,4 +1,7 @@
 import 'package:event_radar/views/chat_screen.dart';
+import 'package:event_radar/views/event_creation_screen.dart';
+import 'package:event_radar/views/event_list_screen.dart';
+import 'package:event_radar/views/event_map_screen.dart';
 import 'package:event_radar/views/event_overview_screen.dart';
 import 'package:event_radar/views/profile/login_screen.dart';
 import 'package:event_radar/views/profile/profile_settings_screen.dart';
@@ -23,24 +26,16 @@ import 'core/viewmodels/event_list_viewmodel.dart';
 import 'core/viewmodels/event_map_viewmodel.dart';
 import 'core/viewmodels/event_overview_viewmodel.dart';
 import 'firebase_options.dart';
-import 'views/event_creation_screen.dart';
-import 'views/event_list_screen.dart';
-import 'views/event_map_screen.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
-
-// Hintergrund-Handler für FCM
-Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp();
-}
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
 
 const AndroidNotificationChannel announcementChannel =
     AndroidNotificationChannel(
-      'event_announcements', // id
-      'Event Announcements', // name
+      'event_announcements',
+      'Event Announcements',
       description: 'Ankündigungen zu Events',
       importance: Importance.high,
     );
@@ -55,30 +50,18 @@ Future<void> main() async {
     appleProvider: AppleProvider.debug,
   );
 
-  // 1) Initialisiere flutter_local_notifications mit Default-Icon
-  const AndroidInitializationSettings initSettingsAndroid =
-      AndroidInitializationSettings('ic_launcher');
-  final InitializationSettings initSettings = InitializationSettings(
-    android: initSettingsAndroid,
-  );
+  const androidInit = AndroidInitializationSettings('ic_launcher');
   await flutterLocalNotificationsPlugin.initialize(
-    initSettings,
-    onDidReceiveNotificationResponse: (NotificationResponse resp) {
-      // hier könntest du Payload verarbeiten, falls nötig
-    },
+    InitializationSettings(android: androidInit),
   );
 
-  // 2) Notification-Channel für Android erstellen
   await flutterLocalNotificationsPlugin
       .resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin
       >()
       ?.createNotificationChannel(announcementChannel);
 
-  // Hintergrund-Nachrichten-Handler registrieren
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-
-  final LocationProvider locationProvider = LocationProvider();
+  final locationProvider = LocationProvider();
   await locationProvider.updateLocation();
 
   runApp(
@@ -114,30 +97,29 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
 
-    // Router-Konfiguration
+    // 1) Router konfigurieren
     _router = GoRouter(
       initialLocation: '/event-list',
       navigatorKey: _rootNavigatorKey,
       routes: [
         StatefulShellRoute.indexedStack(
-          builder: (context, state, navigationShell) {
-            return NavbarContainer(navigationShell: navigationShell);
-          },
+          builder:
+              (context, state, navShell) =>
+                  NavbarContainer(navigationShell: navShell),
           branches: [
             StatefulShellBranch(
               routes: [
                 GoRoute(
                   path: '/event-list',
                   builder: (context, state) => EventListScreen(),
-                  routes: <RouteBase>[
+                  routes: [
                     GoRoute(
                       path: 'create-event',
-                      builder: (context, state) {
-                        return ChangeNotifierProvider(
-                          create: (_) => EventCreationViewModel(),
-                          child: const EventCreationScreen(),
-                        );
-                      },
+                      builder:
+                          (context, state) => ChangeNotifierProvider(
+                            create: (_) => EventCreationViewModel(),
+                            child: const EventCreationScreen(),
+                          ),
                     ),
                   ],
                 ),
@@ -216,41 +198,38 @@ class _MyAppState extends State<MyApp> {
             ),
           ],
         ),
-        GoRoute(path: '/', redirect: (context, state) => '/event-list'),
+        GoRoute(path: '/', redirect: (_, _) => '/event-list'),
       ],
     );
 
     FirebaseMessaging.instance.requestPermission();
 
-    // FOREGROUND-Listener: In-App-Benachrichtigungen anzeigen
-    FirebaseMessaging.onMessage.listen((RemoteMessage msg) {
+    // Foreground-Listener: In-App anzeigen oder direkt navigieren
+    FirebaseMessaging.onMessage.listen((msg) {
       final data = msg.data;
       final eventId = data['eventId'] as String?;
       final channelId = data['channelId'] as String?;
       final senderId = data['senderId'] as String?;
       final myUid = AuthService().currentUser()?.uid;
 
-      // a) Eigene Nachrichten ignorieren
-      if (senderId != null && senderId == myUid) return;
+      // Eigene Nachrichten ignorieren
+      if (senderId == myUid) return;
 
-      // b) Wenn ich gerade im Announcement-Channel dieses Events bin, ignorieren
-      final notifState = context.read<NotificationProvider>();
-      if (eventId == notifState.currentEventId &&
-          channelId == notifState.currentChannelId) {
+      // Falls gerade offen im selben Channel, nicht duplizieren
+      if (!context.mounted) return;
+      final notificationState = context.read<NotificationProvider>();
+      if (eventId == notificationState.currentEventId &&
+          channelId == notificationState.currentChannelId) {
         return;
       }
 
-      // c) Nur die letzte Notification pro Event zeigen
-      final notifId = eventId.hashCode;
-
-      // d) Eigentliche Anzeige
-      final notification = msg.notification;
-      final android = notification?.android;
-      if (notification != null && android != null) {
+      // Lokale Notification anzeigen
+      final notif = msg.notification;
+      if (notif != null && notif.android != null) {
         flutterLocalNotificationsPlugin.show(
-          notifId, // ersetzt vorherige Notification für dieses Event!
-          notification.title,
-          notification.body,
+          eventId.hashCode,
+          notif.title,
+          notif.body,
           NotificationDetails(
             android: AndroidNotificationDetails(
               announcementChannel.id,
@@ -264,35 +243,33 @@ class _MyAppState extends State<MyApp> {
       }
     });
 
-    // 2) Tap-Handler (App im Hintergrund oder komplett geschlossen)
+    // Tap-Handler, wenn App im Hintergrund war
     FirebaseMessaging.onMessageOpenedApp.listen((msg) {
       final data = msg.data;
       final eventId = data['eventId'] as String?;
       final channelId = data['channelId'] as String?;
       final senderId = data['senderId'] as String?;
       final myUid = AuthService().currentUser()?.uid;
-
-      if (eventId == null || channelId == null || senderId == myUid) return;
-
-      // use the router, not context.go
-      _router.go(
-        '/event-overview/$eventId/chat/$channelId',
-        extra: 'Announcements',
-      );
+      if (eventId != null && channelId != null && senderId != myUid) {
+        _router.go(
+          '/event-overview/$eventId/chat/$channelId',
+          extra: 'Announcements',
+        );
+      }
     });
 
-    // when cold‐start via tap
+    // Cold-start-Navigation
     FirebaseMessaging.instance.getInitialMessage().then((msg) {
       final data = msg?.data;
       final eventId = data?['eventId'] as String?;
       final channelId = data?['channelId'] as String?;
       final senderId = data?['senderId'] as String?;
       final myUid = AuthService().currentUser()?.uid;
-
       if (msg != null &&
           eventId != null &&
           channelId != null &&
           senderId != myUid) {
+        // Muss nach FrameCallback, damit Router ready ist
         WidgetsBinding.instance.addPostFrameCallback((_) {
           _router.go(
             '/event-overview/$eventId/chat/$channelId',
