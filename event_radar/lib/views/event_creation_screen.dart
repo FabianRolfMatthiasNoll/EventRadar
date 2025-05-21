@@ -14,12 +14,11 @@ class EventCreationScreen extends StatefulWidget {
   const EventCreationScreen({super.key});
 
   @override
-  _EventCreationScreenState createState() => _EventCreationScreenState();
+  State<EventCreationScreen> createState() => _EventCreationScreenState();
 }
 
 class _EventCreationScreenState extends State<EventCreationScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _descriptionController = TextEditingController();
 
   Future<void> _pickLocation(EventCreationViewModel viewModel) async {
     final result = await Navigator.push(
@@ -30,12 +29,6 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
       viewModel.location = result;
       setState(() {});
     }
-  }
-
-  @override
-  void dispose() {
-    _descriptionController.dispose();
-    super.dispose();
   }
 
   @override
@@ -164,10 +157,8 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                         maxLength: Event.maxDescriptionLength,
                         minLines: 1,
                         maxLines: 5,
-                        controller: _descriptionController,
                         onChanged: (value) {
                           vm.description = cleanString(value);
-                          _descriptionController.text = vm.description;
                         },
                       ),
                       const SizedBox(height: 16.0),

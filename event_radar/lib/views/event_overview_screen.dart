@@ -232,8 +232,6 @@ class _EventOverviewContent extends StatelessWidget {
                           decoration: const InputDecoration(
                             hintText: "Neue Beschreibung eingeben...",
                           ),
-                          onChanged:
-                              (text) => controller.text = cleanString(text),
                         ),
                         actions: [
                           TextButton(
@@ -242,7 +240,9 @@ class _EventOverviewContent extends StatelessWidget {
                           ),
                           TextButton(
                             onPressed:
-                                () => Navigator.of(ctx).pop(controller.text),
+                                () => Navigator.of(
+                                  ctx,
+                                ).pop(cleanString(controller.text)),
                             child: const Text("OK"),
                           ),
                         ],
