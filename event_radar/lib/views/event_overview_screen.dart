@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
+import 'package:readmore/readmore.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -206,8 +207,13 @@ class _EventOverviewContent extends StatelessWidget {
     final description = (event.description ?? '').trim();
     return ListTile(
       leading: const Icon(Icons.description),
-      title: Text(
+      title: ReadMoreText(
         description.isNotEmpty ? description : "Keine Beschreibung hinterlegt.",
+        trimMode: TrimMode.Line,
+        trimLines: 3,
+        colorClickableText: Theme.of(context).primaryColor,
+        trimCollapsedText: "Zeige mehr",
+        trimExpandedText: " Zeige weniger",
       ),
       onTap:
           isOrganizer
