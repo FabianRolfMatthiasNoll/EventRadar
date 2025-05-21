@@ -308,12 +308,12 @@ class _EventOverviewContent extends StatelessWidget {
       addToCalendar(event);
     } else if (result == 'editDate') {
       if (context.mounted) {
-        _showDateEditor(context, vm, event);
+        _showDatePickerSheet(context, vm, event);
       }
     }
   }
 
-  void _showDateEditor(
+  void _showDatePickerSheet(
     BuildContext context,
     EventOverviewViewModel vm,
     Event event,
@@ -389,28 +389,16 @@ class _EventOverviewContent extends StatelessWidget {
         Placemark place = placemarks.first;
         return "${place.street}, ${place.locality}, ${place.country}";
       }
-      return "Unbekannter Ort";
+      return "Öffne EventRadar um den aktuellen Treffpunkt zu sehen";
     } catch (e) {
-      return "Unbekannter Ort";
+      return "Öffne EventRadar um den aktuellen Treffpunkt zu sehen";
     }
   }
 
   Future<void> addToCalendar(Event eventRadarEvent) async {
-    var titleParam = eventRadarEvent.title;
-    var descriptionParam = eventRadarEvent.description;
     var locationParam = await geoPointToAddress(eventRadarEvent.location);
     var endDateParam = eventRadarEvent.endDate;
-
-    if (titleParam.isEmpty) {
-      titleParam = "Event from EventRadar";
-    }
-    if (descriptionParam == null || descriptionParam.isEmpty) {
-      descriptionParam = "Have fun and enjoy!";
-    }
-    if (locationParam.isEmpty || locationParam == "Unbekannter Ort") {
-      locationParam = "Check EventRadar for current location";
-    }
-
+    //wenn kein enddatum dann bis Tagesende geplant -> kann noch verändert werden
     endDateParam ??= DateTime(
       eventRadarEvent.startDate.year,
       eventRadarEvent.startDate.month,
@@ -421,8 +409,8 @@ class _EventOverviewContent extends StatelessWidget {
     );
 
     final event = add_2_calender.Event(
-      title: titleParam,
-      description: descriptionParam,
+      title: eventRadarEvent.title,
+      description: eventRadarEvent.description,
       location: locationParam,
       startDate: eventRadarEvent.startDate,
       endDate: endDateParam,
