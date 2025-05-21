@@ -88,6 +88,10 @@ export const onAnnouncementCreated = functions
       body = `${text}`;
     }
 
+    if (msgData.type === "survey") {
+      body = `${senderName} hat eine Umfrage gestartet`;
+    }
+
     // 6) Payload für Topic-Push
     const payload: admin.messaging.Message = {
       topic: `event_${eventId}_announcements`,
