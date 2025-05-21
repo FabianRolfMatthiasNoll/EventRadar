@@ -46,7 +46,10 @@ class EventTile extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: isPromoted ? Colors.amber.shade50 : Colors.white,
+        color:
+            isPromoted
+                ? Colors.amber.shade50
+                : Theme.of(context).listTileTheme.tileColor,
         borderRadius: BorderRadius.circular(12),
         boxShadow:
             isPromoted
