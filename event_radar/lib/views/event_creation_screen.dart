@@ -1,4 +1,5 @@
 import 'package:event_radar/core/models/event.dart';
+import 'package:event_radar/core/util/text_utils.dart';
 import 'package:event_radar/widgets/image_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -18,6 +19,7 @@ class EventCreationScreen extends StatefulWidget {
 
 class _EventCreationScreenState extends State<EventCreationScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _descriptionController = TextEditingController();
 
   Future<void> _pickLocation(EventCreationViewModel viewModel) async {
     final result = await Navigator.push(
@@ -28,6 +30,12 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
       viewModel.location = result;
       setState(() {});
     }
+  }
+
+  @override
+  void dispose() {
+    _descriptionController.dispose();
+    super.dispose();
   }
 
   @override
@@ -154,7 +162,13 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                           labelText: 'Beschreibung (optional)',
                         ),
                         maxLength: Event.maxDescriptionLength,
-                        onChanged: (value) => vm.description = value,
+                        minLines: 1,
+                        maxLines: 5,
+                        controller: _descriptionController,
+                        onChanged: (value) {
+                          vm.description = cleanString(value);
+                          _descriptionController.text = vm.description;
+                        },
                       ),
                       const SizedBox(height: 16.0),
                       // Visibility selection.

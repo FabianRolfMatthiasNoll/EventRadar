@@ -20,6 +20,7 @@ import '../../widgets/image_picker.dart';
 import '../../widgets/main_scaffold.dart';
 import '../../widgets/static_map_snippet.dart';
 import '../core/models/chat_channel.dart';
+import '../core/util/text_utils.dart';
 import '../core/viewmodels/channels_viewmodel.dart';
 import '../widgets/participant_list_sheet.dart';
 import 'map_picker_screen.dart';
@@ -220,9 +221,13 @@ class _EventOverviewContent extends StatelessWidget {
                         content: TextField(
                           controller: controller,
                           maxLength: Event.maxDescriptionLength,
+                          minLines: 1,
+                          maxLines: 5,
                           decoration: const InputDecoration(
                             hintText: "Neue Beschreibung eingeben...",
                           ),
+                          onChanged:
+                              (text) => controller.text = cleanString(text),
                         ),
                         actions: [
                           TextButton(
@@ -231,9 +236,7 @@ class _EventOverviewContent extends StatelessWidget {
                           ),
                           TextButton(
                             onPressed:
-                                () => Navigator.of(
-                                  ctx,
-                                ).pop(controller.text.trim()),
+                                () => Navigator.of(ctx).pop(controller.text),
                             child: const Text("OK"),
                           ),
                         ],
