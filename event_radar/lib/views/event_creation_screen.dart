@@ -154,7 +154,6 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                         decoration: const InputDecoration(
                           labelText: 'Beschreibung (optional)',
                         ),
-                        maxLength: Event.maxDescriptionLength,
                         minLines: 1,
                         maxLines: 5,
                         onChanged: (value) {

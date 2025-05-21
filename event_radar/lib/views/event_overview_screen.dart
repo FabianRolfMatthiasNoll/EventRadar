@@ -226,7 +226,6 @@ class _EventOverviewContent extends StatelessWidget {
                         title: const Text("Beschreibung ändern"),
                         content: TextField(
                           controller: controller,
-                          maxLength: Event.maxDescriptionLength,
                           minLines: 1,
                           maxLines: 5,
                           decoration: const InputDecoration(
