@@ -88,26 +88,19 @@ class _EventOverviewContent extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                spacing: 10,
                 children: [
-                  const SizedBox(height: 10),
                   _buildDescription(context, vm, event, isOrganizer),
-                  const SizedBox(height: 10),
                   _buildDateTile(context, vm, event, isOrganizer),
-                  const SizedBox(height: 10),
                   _buildParticipantsTile(context, vm, event),
                   if (isParticipant) ...[
-                    const SizedBox(height: 10),
                     _buildAnnouncementsTile(context, vm, chVm, isOrganizer),
-                    const SizedBox(height: 10),
                     _buildChatRoomsSection(context, vm, chVm, isOrganizer),
                   ],
-                  const SizedBox(height: 10),
                   _buildMap(context, vm, event, isOrganizer),
-                  const SizedBox(height: 10),
                   isParticipant
                       ? _buildShareButton(vm.eventId)
                       : _buildJoinButton(context, event, currentUser!.uid),
-                  const SizedBox(height: 10),
                 ],
               ),
             ),
@@ -164,7 +157,10 @@ class _EventOverviewContent extends StatelessWidget {
                           builder:
                               (ctx) => AlertDialog(
                                 title: const Text("Titel ändern"),
-                                content: TextField(controller: controller),
+                                content: TextField(
+                                  controller: controller,
+                                  maxLength: Event.maxTitleLength,
+                                ),
                                 actions: [
                                   TextButton(
                                     child: const Text("Abbrechen"),
@@ -227,7 +223,7 @@ class _EventOverviewContent extends StatelessWidget {
                         title: const Text("Beschreibung ändern"),
                         content: TextField(
                           controller: controller,
-                          maxLines: null,
+                          maxLength: Event.maxDescriptionLength,
                           decoration: const InputDecoration(
                             hintText: "Neue Beschreibung eingeben...",
                           ),

@@ -56,15 +56,33 @@ class EventListScreen extends StatelessWidget {
                           child: Text("Keine Events gefunden."),
                         );
                       }
+                      final promotedEvents =
+                          events.where((e) => e.promoted == true).toList();
+                      final otherEvents =
+                          events.where((e) => e.promoted != true).toList();
+
                       return RefreshIndicator(
                         onRefresh: () => locationProvider.updateLocation(),
                         child: ListView.builder(
-                          itemCount: events.length,
-                          itemBuilder:
-                              (ctx, i) => EventTile(
-                                event: events[i],
+                          itemCount: promotedEvents.length + otherEvents.length,
+                          itemBuilder: (ctx, i) {
+                            if (i < promotedEvents.length) {
+                              // Promoted Events
+                              return EventTile(
+                                event: promotedEvents[i],
                                 userPosition: userPosition,
-                              ),
+                                isPromoted: true,
+                              );
+                            } else {
+                              // Other Events
+                              final otherIndex = i - promotedEvents.length;
+                              return EventTile(
+                                event: otherEvents[otherIndex],
+                                userPosition: userPosition,
+                                isPromoted: false,
+                              );
+                            }
+                          },
                         ),
                       );
                     },
