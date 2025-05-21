@@ -1,8 +1,10 @@
 import 'dart:io';
 
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:add_2_calendar/add_2_calendar.dart' as add_2_calender;
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
@@ -274,12 +276,12 @@ class _EventOverviewContent extends StatelessWidget {
               : Text(formatDateTime(event.startDate)),
       onTap:
           isOrganizer
-              ? () => _showAdminDatePickerSheet(context, vm, event)
-              : () => _showUserDatePickerSheet(context, event),
+              ? () => _showOrganizerDateOptions(context, vm, event)
+              : () => addToCalendar(event),
     );
   }
 
-  void _showAdminDatePickerSheet(
+  void _showOrganizerDateOptions(
     BuildContext context,
     EventOverviewViewModel vm,
     Event event,
@@ -307,16 +309,8 @@ class _EventOverviewContent extends StatelessWidget {
     );
 
     if (result == 'addToCalendar') {
-      // Kalenderoption ausführen
-      addToCalendar(
-        event.title,
-        event.startDate,
-        event.endDate ?? event.startDate.add(const Duration(hours: 2)),
-        event.location as String,
-        event.description,
-      );
+      addToCalendar(event);
     } else if (result == 'editDate') {
-      // Datum bearbeiten
       if (context.mounted) {
         _showDateEditor(context, vm, event);
       }
@@ -389,44 +383,55 @@ class _EventOverviewContent extends StatelessWidget {
     );
   }
 
-  void _showUserDatePickerSheet(BuildContext context, Event event) {
-    addToCalendar(
-      event.title,
-      event.startDate,
-      event.endDate ?? event.startDate.add(const Duration(hours: 2)),
-      event.location as String,
-      event.description,
-    );
+  Future<String> geoPointToAddress(GeoPoint geoPoint) async {
+    try {
+      List<Placemark> placemarks = await placemarkFromCoordinates(
+        geoPoint.latitude,
+        geoPoint.longitude,
+      );
+      if (placemarks.isNotEmpty) {
+        Placemark place = placemarks.first;
+        return "${place.street}, ${place.locality}, ${place.country}";
+      }
+      return "Unbekannter Ort";
+    } catch (e) {
+      return "Unbekannter Ort";
+    }
   }
 
-  void addToCalendar(
-    String title,
-    DateTime startDate,
-    DateTime endDate,
-    String location,
-    String? description,
-  ) {
-    var titleParam = title;
-    var descriptionParam = description;
-    var locationParam = location;
+  Future<void> addToCalendar(Event eventRadarEvent) async {
+    var titleParam = eventRadarEvent.title;
+    var descriptionParam = eventRadarEvent.description;
+    var locationParam = await geoPointToAddress(eventRadarEvent.location);
+    var endDateParam = eventRadarEvent.endDate;
+
     if (titleParam.isEmpty) {
       titleParam = "Event from EventRadar";
     }
-    if (description == null || description.isEmpty) {
-      description = "Have fun and enjoy!";
+    if (descriptionParam == null || descriptionParam.isEmpty) {
+      descriptionParam = "Have fun and enjoy!";
     }
-    if (location.isEmpty) {
-      description = "Check EventRadar for current location";
+    if (locationParam.isEmpty || locationParam == "Unbekannter Ort") {
+      locationParam = "Check EventRadar for current location";
     }
+
+    endDateParam ??= DateTime(
+      eventRadarEvent.startDate.year,
+      eventRadarEvent.startDate.month,
+      eventRadarEvent.startDate.day,
+      23, // Stunde: 23 Uhr
+      59, // Minute: 59 Minuten
+      59, // Sekunde: 59 Sekunden
+    );
+
     final event = add_2_calender.Event(
       title: titleParam,
       description: descriptionParam,
       location: locationParam,
-      startDate: startDate,
-      endDate: endDate,
+      startDate: eventRadarEvent.startDate,
+      endDate: endDateParam,
       allDay: false,
     );
-
     add_2_calender.Add2Calendar.addEvent2Cal(event);
   }
 

@@ -52,6 +52,7 @@ dependencies:
   email_validator: ^3.0.0
   shared_preferences: ^2.1.0
   add_2_calendar: ^3.0.1
+  geocoding: ^3.0.0
 
   collection: any
   cloud_functions: ^5.4.0
