@@ -35,19 +35,19 @@ class _LoginScreenState extends State<LoginScreen> {
           message = null;
           break;
         case SignInStatus.userNotFound:
-          message = 'Benutzer existiert nicht';
+          message = 'Dieser Benutzer existiert nicht.';
           break;
         case SignInStatus.wrongPassword:
-          message = 'Falsches Passwort';
+          message = 'Falsches Passwort wurde eingegeben.';
           break;
         case SignInStatus.invalidEmail:
           message = 'Die Email ist nicht korrekt.';
           break;
         case SignInStatus.noInternet:
-          message = 'Verbindung fehlgeschlagen';
+          message = 'Die Verbindung ist fehlgeschlagen.';
           break;
         case SignInStatus.unknownError:
-          message = 'Anmeldung fehlgeschlagen';
+          message = 'Die Anmeldung ist fehlgeschlagen.';
           break;
       }
 
@@ -63,20 +63,6 @@ class _LoginScreenState extends State<LoginScreen> {
         ).showSnackBar(SnackBar(content: Text(message)));
       }
     }
-  }
-
-  String? _validateEmail(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Bitte Email oder Name eingeben';
-    }
-    return null;
-  }
-
-  String? _validatePassword(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Bitte Passwort eingeben';
-    }
-    return null;
   }
 
   void _gotoRegister(BuildContext context) {
@@ -105,15 +91,15 @@ class _LoginScreenState extends State<LoginScreen> {
               controller: _emailController,
               decoration: InputDecoration(
                 border: OutlineInputBorder(),
-                labelText: 'Email / Name',
+                labelText: 'Email-Adresse',
                 prefixIcon: Icon(Icons.person),
               ),
-              validator: _validateEmail,
+              validator: AuthService().validateEmail,
               textInputAction: TextInputAction.next,
             ),
             PasswordFormField(
               controller: _passwordController,
-              validator: _validatePassword,
+              validator: AuthService().validatePasswordField,
               textInputAction: TextInputAction.next,
             ),
             _isLoading

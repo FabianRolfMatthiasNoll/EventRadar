@@ -50,14 +50,33 @@ class _SearchScreen extends State<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     userPosition = Provider.of<LocationProvider>(context).currentPosition;
+    final promotedEvents = events.where((e) => e.promoted == true).toList();
+    final otherEvents = events.where((e) => e.promoted != true).toList();
 
     return ListView.builder(
-      itemCount: events.length + 1,
+      itemCount: promotedEvents.length + otherEvents.length + 1,
       itemBuilder: (BuildContext context, int index) {
         if (index == 0) {
+          // Such- und Filter-Widget
           return _searchAndFilterWidget();
         }
-        return EventTile(event: events[index - 1], userPosition: userPosition);
+
+        // Promoted Events
+        final promotedIndex = index - 1; // Korrigiere Index für Promoted Events
+        if (promotedIndex < promotedEvents.length) {
+          return EventTile(
+            event: promotedEvents[promotedIndex],
+            userPosition: userPosition,
+            isPromoted: true,
+          );
+        }
+
+        // Other Events
+        final otherIndex = promotedIndex - promotedEvents.length;
+        return EventTile(
+          event: otherEvents[otherIndex],
+          userPosition: userPosition,
+        );
       },
     );
   }
@@ -258,12 +277,15 @@ class _FilterOptionsSelectionState extends State<FilterOptionsSelection> {
                   ),
                 ],
               ),
-              subtitle: Slider(
-                min: sliderMin,
-                max: sliderMax,
-                value: distance.toDouble().clamp(sliderMin, sliderMax),
-                onChanged: sliderEnabled ? _updateDistance : null,
-              ),
+              subtitle:
+                  sliderEnabled
+                      ? Slider(
+                        min: sliderMin,
+                        max: sliderMax,
+                        value: distance.toDouble().clamp(sliderMin, sliderMax),
+                        onChanged: _updateDistance,
+                      )
+                      : SizedBox.shrink(),
             ),
             Divider(),
             DateSelectionTile(
