@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
+import 'package:readmore/readmore.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -21,6 +22,7 @@ import '../../widgets/image_picker.dart';
 import '../../widgets/main_scaffold.dart';
 import '../../widgets/static_map_snippet.dart';
 import '../core/models/chat_channel.dart';
+import '../core/util/text_utils.dart';
 import '../core/viewmodels/channels_viewmodel.dart';
 import '../widgets/participant_list_sheet.dart';
 import 'map_picker_screen.dart';
@@ -206,8 +208,13 @@ class _EventOverviewContent extends StatelessWidget {
     final description = (event.description ?? '').trim();
     return ListTile(
       leading: const Icon(Icons.description),
-      title: Text(
+      title: ReadMoreText(
         description.isNotEmpty ? description : "Keine Beschreibung hinterlegt.",
+        trimMode: TrimMode.Line,
+        trimLines: 3,
+        colorClickableText: Theme.of(context).primaryColor,
+        trimCollapsedText: "Zeige mehr",
+        trimExpandedText: " Zeige weniger",
       ),
       onTap:
           isOrganizer
@@ -220,7 +227,8 @@ class _EventOverviewContent extends StatelessWidget {
                         title: const Text("Beschreibung ändern"),
                         content: TextField(
                           controller: controller,
-                          maxLength: Event.maxDescriptionLength,
+                          minLines: 1,
+                          maxLines: 5,
                           decoration: const InputDecoration(
                             hintText: "Neue Beschreibung eingeben...",
                           ),
@@ -234,7 +242,7 @@ class _EventOverviewContent extends StatelessWidget {
                             onPressed:
                                 () => Navigator.of(
                                   ctx,
-                                ).pop(controller.text.trim()),
+                                ).pop(cleanString(controller.text)),
                             child: const Text("OK"),
                           ),
                         ],
