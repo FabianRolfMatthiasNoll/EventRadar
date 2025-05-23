@@ -97,7 +97,7 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
 
-    // 1) Router konfigurieren
+    // Router-Konfiguration
     _router = GoRouter(
       initialLocation: '/event-list',
       navigatorKey: _rootNavigatorKey,

@@ -1,7 +1,10 @@
 import 'dart:io';
 
+import 'package:add_2_calendar/add_2_calendar.dart' as add_2_calender;
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
@@ -276,8 +279,46 @@ class _EventOverviewContent extends StatelessWidget {
               )
               : Text(formatDateTime(event.startDate)),
       onTap:
-          isOrganizer ? () => _showDatePickerSheet(context, vm, event) : null,
+          isOrganizer
+              ? () => _showOrganizerDateOptions(context, vm, event)
+              : () => addToCalendar(event),
     );
+  }
+
+  void _showOrganizerDateOptions(
+    BuildContext context,
+    EventOverviewViewModel vm,
+    Event event,
+  ) async {
+    final result = await showDialog<String>(
+      context: context,
+      builder:
+          (ctx) => SimpleDialog(
+            title: const Text("Aktion auswählen"),
+            children: [
+              SimpleDialogOption(
+                onPressed: () => Navigator.of(ctx).pop('addToCalendar'),
+                child: const Text("Zum Kalender hinzufügen"),
+              ),
+              SimpleDialogOption(
+                onPressed: () => Navigator.of(ctx).pop('editDate'),
+                child: const Text("Datum bearbeiten"),
+              ),
+              SimpleDialogOption(
+                onPressed: () => Navigator.of(ctx).pop(null),
+                child: const Text("Abbrechen"),
+              ),
+            ],
+          ),
+    );
+
+    if (result == 'addToCalendar') {
+      addToCalendar(event);
+    } else if (result == 'editDate') {
+      if (context.mounted) {
+        _showDatePickerSheet(context, vm, event);
+      }
+    }
   }
 
   void _showDatePickerSheet(
@@ -287,6 +328,7 @@ class _EventOverviewContent extends StatelessWidget {
   ) {
     DateTime? newStart;
     DateTime? newEnd;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -343,6 +385,46 @@ class _EventOverviewContent extends StatelessWidget {
             ),
           ),
     );
+  }
+
+  Future<String> geoPointToAddress(GeoPoint geoPoint) async {
+    try {
+      List<Placemark> placemarks = await placemarkFromCoordinates(
+        geoPoint.latitude,
+        geoPoint.longitude,
+      );
+      if (placemarks.isNotEmpty) {
+        Placemark place = placemarks.first;
+        return "${place.street}, ${place.locality}, ${place.country}";
+      }
+      return "Öffne EventRadar um den aktuellen Treffpunkt zu sehen";
+    } catch (e) {
+      return "Öffne EventRadar um den aktuellen Treffpunkt zu sehen";
+    }
+  }
+
+  Future<void> addToCalendar(Event eventRadarEvent) async {
+    var locationParam = await geoPointToAddress(eventRadarEvent.location);
+    var endDateParam = eventRadarEvent.endDate;
+    //wenn kein enddatum dann bis Tagesende geplant -> kann noch verändert werden
+    endDateParam ??= DateTime(
+      eventRadarEvent.startDate.year,
+      eventRadarEvent.startDate.month,
+      eventRadarEvent.startDate.day,
+      23, // Stunde: 23 Uhr
+      59, // Minute: 59 Minuten
+      59, // Sekunde: 59 Sekunden
+    );
+
+    final event = add_2_calender.Event(
+      title: eventRadarEvent.title,
+      description: eventRadarEvent.description,
+      location: locationParam,
+      startDate: eventRadarEvent.startDate,
+      endDate: endDateParam,
+      allDay: false,
+    );
+    add_2_calender.Add2Calendar.addEvent2Cal(event);
   }
 
   Widget _buildParticipantsTile(
