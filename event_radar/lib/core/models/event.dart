@@ -16,8 +16,7 @@ class Event {
 
   static final EventAttributes attr = EventAttributes();
 
-  static int maxTitleLength = 25;
-  static int maxDescriptionLength = 50;
+  static int maxTitleLength = 50;
 
   Event({
     this.id,
