@@ -24,6 +24,104 @@ function extractFilePath(rawPath: string): string | null {
   return fp.replace("%2F", "/");
 }
 
+export const onAnnouncementCreated = functions
+  .firestore
+  .document("events/{eventId}/channels/{channelId}/messages/{msgId}")
+  .onCreate(async (snap, ctx) => {
+    const {eventId, channelId, msgId} = ctx.params;
+
+    // 1) Channel-Dokument laden und auf type === 'announcement' prüfen
+    const channelRef = admin
+      .firestore()
+      .collection("events")
+      .doc(eventId)
+      .collection("channels")
+      .doc(channelId);
+    const channelSnap = await channelRef.get();
+    const channelData = channelSnap.data();
+    if (!channelData) {
+      console.log(`Channel-Dokument nicht gefunden: ${channelId}`);
+      return null;
+    }
+    if (channelData.channelType !== "announcement") {
+      console.log(
+        `Übersprungen: Channel ${channelId} ist vom Typ ` +
+        `"${channelData.channelType}", nicht "announcement".`
+      );
+      return null;
+    }
+
+    // 2) Announcement-Daten
+    const msgData = snap.data() as {
+        text?: string;
+        senderId?: string;
+        type?: string
+    };
+    const text = (msgData.text || "").trim();
+
+    // 3) Event-Titel holen
+    const eventSnap = await admin
+      .firestore()
+      .collection("events")
+      .doc(eventId)
+      .get();
+    const eventTitle = eventSnap.data()?.title || "Event";
+
+    // 4) Absender-Name ermitteln
+    let senderName = "Teilnehmer";
+    if (msgData.senderId && msgData.senderId !== "admin") {
+      try {
+        const user = await admin.auth().getUser(msgData.senderId);
+        senderName = user.displayName || user.email || senderName;
+      } catch (e) {
+        console.error("Fehler beim Laden des Users", e);
+      }
+    } else if (msgData.senderId === "admin") {
+      senderName = "Admin";
+    }
+
+    // 5) Notification Titel & Body
+    const title = `${eventTitle}`;
+    let body = `${senderName}: ${text}`;
+
+    if (msgData.type === "update") {
+      body = `${text}`;
+    }
+
+    if (msgData.type === "survey") {
+      body = `${senderName} hat eine Umfrage gestartet`;
+    }
+
+    // 6) Payload für Topic-Push
+    const payload: admin.messaging.Message = {
+      topic: `event_${eventId}_announcements`,
+      notification: {title, body},
+      data: {
+        click_action: "FLUTTER_NOTIFICATION_CLICK",
+        eventId,
+        channelId,
+        messageId: msgId,
+        senderId: msgData.senderId || "",
+      },
+      android: {
+        priority: "high",
+        notification: {
+          channelId: "event_announcements",
+          clickAction: "FLUTTER_NOTIFICATION_CLICK",
+        },
+      },
+    };
+    // 7) Push versenden
+    try {
+      const resp = await admin.messaging().send(payload);
+      console.log("Push gesendet:", resp);
+      return resp;
+    } catch (err) {
+      console.error("Fehler beim Senden der Push:", err);
+      throw err;
+    }
+  });
+
 /**
  * Löscht die Event-Bilddatei aus Firebase Storage, falls
  * eine gültige URL vorliegt.

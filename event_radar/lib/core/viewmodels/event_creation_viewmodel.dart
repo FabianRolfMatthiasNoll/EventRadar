@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
@@ -71,7 +72,15 @@ class EventCreationViewModel extends ChangeNotifier {
         participants: [currentUser.uid],
       );
 
-      await _eventService.createEvent(event, imageFile: imageFile);
+      final createdEvent = await _eventService.createEvent(
+        event,
+        imageFile: imageFile,
+      );
+
+      await FirebaseMessaging.instance.subscribeToTopic(
+        'event_${createdEvent.id}_announcements',
+      );
+
       return 'Event erfolgreich erstellt';
     } catch (e) {
       return 'Fehler beim Erstellen des Events: $e';
