@@ -406,15 +406,8 @@ class _EventOverviewContent extends StatelessWidget {
   Future<void> addToCalendar(Event eventRadarEvent) async {
     var locationParam = await geoPointToAddress(eventRadarEvent.location);
     var endDateParam = eventRadarEvent.endDate;
-    //wenn kein enddatum dann bis Tagesende geplant -> kann noch verändert werden
-    endDateParam ??= DateTime(
-      eventRadarEvent.startDate.year,
-      eventRadarEvent.startDate.month,
-      eventRadarEvent.startDate.day,
-      23, // Stunde: 23 Uhr
-      59, // Minute: 59 Minuten
-      59, // Sekunde: 59 Sekunden
-    );
+    // if no end date set end date one hour in the future
+    endDateParam ??= eventRadarEvent.startDate.add(Duration(hours: 1));
 
     final event = add_2_calender.Event(
       title: eventRadarEvent.title,
