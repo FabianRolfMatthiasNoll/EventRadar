@@ -43,22 +43,13 @@ class EventTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: isPromoted ? Colors.amber.shade50 : Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow:
-            isPromoted
-                ? [
-                  BoxShadow(
-                    color: const Color.fromARGB(255, 255, 212, 121),
-                    blurRadius: 6,
-                    offset: const Offset(0, 3),
-                  ),
-                ]
-                : [],
-      ),
+    return Card(
+      shadowColor:
+          isPromoted
+              ? Color.fromARGB(255, 255, 212, 121)
+              : Theme.of(context).shadowColor,
+      elevation: isPromoted ? 3 : 1,
+      color: isPromoted ? Colors.amber.shade50 : Theme.of(context).cardColor,
       child: ListTile(
         leading: Stack(
           alignment: Alignment.topRight,
