@@ -43,39 +43,7 @@ class EventTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final container = Container(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        boxShadow:
-            isPromoted
-                ? [
-                  BoxShadow(
-                    color: const Color.fromARGB(255, 255, 212, 121),
-                    blurRadius: 6,
-                    offset: const Offset(0, 3),
-                  ),
-                ]
-                : [],
-      ),
-      child: ListTile(
-        leading: Stack(
-          alignment: Alignment.topRight,
-          children: [
-            AvatarOrPlaceholder(imageUrl: event.image, name: event.title),
-            if (isPromoted)
-              const Icon(Icons.star, color: Colors.amber, size: 18),
-          ],
-        ),
-        title: Text(
-          event.title,
-          style: TextStyle(color: isPromoted ? Colors.orange[900] : null),
-        ),
-        subtitle: Text(createInfoString(event)),
-        onTap: () => context.push('/event-overview/${event.id}'),
-      ),
-    );
-    final card = Card(
+    return Card(
       shadowColor:
           isPromoted
               ? Color.fromARGB(255, 255, 212, 121)
@@ -99,6 +67,5 @@ class EventTile extends StatelessWidget {
         onTap: () => context.push('/event-overview/${event.id}'),
       ),
     );
-    return card;
   }
 }
