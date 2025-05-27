@@ -12,11 +12,18 @@
       - Nicht letzter Admin -> User wird gewarnt Status zu verlieren
     - Bearbeitung des Events inPlace als Organisator.
       - Nutzbarkeit der normalen Features gegeben (Klick auf Map fragt ob in GoogleMaps öffnen oder bearbeiten)
-    - Änderungen werden im Announcement-Channel protokolliert
     - Teilnehmer-Management
       - Organisatoren können Teilnehmer kicken
       - Organisatoren können Teilnehmer zu Organisatoren promoten oder demoten
     - Events über Links teilen
+    - Chats
+      - Announcement Channel in welchen nur Organizer schreiben können
+      - Eventänderungen werden im Announcement-Channel protokolliert
+      - Push-Benachrichtigungen für Announcement-Channel
+      - Erstellung mehrerer Channels
+      - User können in reguläre Channels schreiben
+      - Umfragen (Erstellen, Abstimmen, Abschließen)
+    - Hinzufügen zum Kalender durch Klicken auf das Datum
 
 - User Funktionaliäten
     - Erstellung Account
