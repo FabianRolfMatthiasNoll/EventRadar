@@ -1,9 +1,14 @@
 import 'dart:io';
 
+import 'package:add_2_calendar/add_2_calendar.dart' as add_2_calender;
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
+import 'package:readmore/readmore.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -20,6 +25,7 @@ import '../../widgets/image_picker.dart';
 import '../../widgets/main_scaffold.dart';
 import '../../widgets/static_map_snippet.dart';
 import '../core/models/chat_channel.dart';
+import '../core/util/text_utils.dart';
 import '../core/viewmodels/channels_viewmodel.dart';
 import '../widgets/participant_list_sheet.dart';
 import 'map_picker_screen.dart';
@@ -205,8 +211,13 @@ class _EventOverviewContent extends StatelessWidget {
     final description = (event.description ?? '').trim();
     return ListTile(
       leading: const Icon(Icons.description),
-      title: Text(
+      title: ReadMoreText(
         description.isNotEmpty ? description : "Keine Beschreibung hinterlegt.",
+        trimMode: TrimMode.Line,
+        trimLines: 3,
+        colorClickableText: Theme.of(context).primaryColor,
+        trimCollapsedText: "Zeige mehr",
+        trimExpandedText: " Zeige weniger",
       ),
       onTap:
           isOrganizer
@@ -219,7 +230,8 @@ class _EventOverviewContent extends StatelessWidget {
                         title: const Text("Beschreibung ändern"),
                         content: TextField(
                           controller: controller,
-                          maxLength: Event.maxDescriptionLength,
+                          minLines: 1,
+                          maxLines: 5,
                           decoration: const InputDecoration(
                             hintText: "Neue Beschreibung eingeben...",
                           ),
@@ -233,7 +245,7 @@ class _EventOverviewContent extends StatelessWidget {
                             onPressed:
                                 () => Navigator.of(
                                   ctx,
-                                ).pop(controller.text.trim()),
+                                ).pop(cleanString(controller.text)),
                             child: const Text("OK"),
                           ),
                         ],
@@ -267,8 +279,46 @@ class _EventOverviewContent extends StatelessWidget {
               )
               : Text(formatDateTime(event.startDate)),
       onTap:
-          isOrganizer ? () => _showDatePickerSheet(context, vm, event) : null,
+          isOrganizer
+              ? () => _showOrganizerDateOptions(context, vm, event)
+              : () => addToCalendar(event),
     );
+  }
+
+  void _showOrganizerDateOptions(
+    BuildContext context,
+    EventOverviewViewModel vm,
+    Event event,
+  ) async {
+    final result = await showDialog<String>(
+      context: context,
+      builder:
+          (ctx) => SimpleDialog(
+            title: const Text("Aktion auswählen"),
+            children: [
+              SimpleDialogOption(
+                onPressed: () => Navigator.of(ctx).pop('addToCalendar'),
+                child: const Text("Zum Kalender hinzufügen"),
+              ),
+              SimpleDialogOption(
+                onPressed: () => Navigator.of(ctx).pop('editDate'),
+                child: const Text("Datum bearbeiten"),
+              ),
+              SimpleDialogOption(
+                onPressed: () => Navigator.of(ctx).pop(null),
+                child: const Text("Abbrechen"),
+              ),
+            ],
+          ),
+    );
+
+    if (result == 'addToCalendar') {
+      addToCalendar(event);
+    } else if (result == 'editDate') {
+      if (context.mounted) {
+        _showDatePickerSheet(context, vm, event);
+      }
+    }
   }
 
   void _showDatePickerSheet(
@@ -278,6 +328,7 @@ class _EventOverviewContent extends StatelessWidget {
   ) {
     DateTime? newStart;
     DateTime? newEnd;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -334,6 +385,39 @@ class _EventOverviewContent extends StatelessWidget {
             ),
           ),
     );
+  }
+
+  Future<String> geoPointToAddress(GeoPoint geoPoint) async {
+    try {
+      List<Placemark> placemarks = await placemarkFromCoordinates(
+        geoPoint.latitude,
+        geoPoint.longitude,
+      );
+      if (placemarks.isNotEmpty) {
+        Placemark place = placemarks.first;
+        return "${place.street}, ${place.locality}, ${place.country}";
+      }
+      return "Öffne EventRadar um den aktuellen Treffpunkt zu sehen";
+    } catch (e) {
+      return "Öffne EventRadar um den aktuellen Treffpunkt zu sehen";
+    }
+  }
+
+  Future<void> addToCalendar(Event eventRadarEvent) async {
+    var locationParam = await geoPointToAddress(eventRadarEvent.location);
+    var endDateParam = eventRadarEvent.endDate;
+    // if no end date set end date one hour in the future
+    endDateParam ??= eventRadarEvent.startDate.add(Duration(hours: 1));
+
+    final event = add_2_calender.Event(
+      title: eventRadarEvent.title,
+      description: eventRadarEvent.description,
+      location: locationParam,
+      startDate: eventRadarEvent.startDate,
+      endDate: endDateParam,
+      allDay: false,
+    );
+    add_2_calender.Add2Calendar.addEvent2Cal(event);
   }
 
   Widget _buildParticipantsTile(
@@ -691,6 +775,9 @@ class _EventOverviewContent extends StatelessWidget {
         // Call Cloud Function to delete the event entirely
         try {
           await EventService().deleteEvent(event.id!);
+          await FirebaseMessaging.instance.unsubscribeFromTopic(
+            'event_${event.id}_announcements',
+          );
           if (!context.mounted) return;
           Navigator.of(context).pop();
           ScaffoldMessenger.of(
@@ -716,6 +803,9 @@ class _EventOverviewContent extends StatelessWidget {
 
     try {
       await EventService().leaveEvent(event.id!, userId);
+      await FirebaseMessaging.instance.unsubscribeFromTopic(
+        'event_${event.id}_announcements',
+      );
       if (!context.mounted) return;
       ScaffoldMessenger.of(
         context,
@@ -745,6 +835,9 @@ class _EventOverviewContent extends StatelessWidget {
 
     try {
       await EventService().joinEvent(event.id!, userId);
+      await FirebaseMessaging.instance.subscribeToTopic(
+        'event_${event.id}_announcements',
+      );
       if (!context.mounted) return;
       ScaffoldMessenger.of(
         context,

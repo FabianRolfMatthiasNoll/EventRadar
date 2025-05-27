@@ -1,4 +1,5 @@
 import 'package:event_radar/core/models/event.dart';
+import 'package:event_radar/core/util/text_utils.dart';
 import 'package:event_radar/widgets/image_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -13,7 +14,7 @@ class EventCreationScreen extends StatefulWidget {
   const EventCreationScreen({super.key});
 
   @override
-  _EventCreationScreenState createState() => _EventCreationScreenState();
+  State<EventCreationScreen> createState() => _EventCreationScreenState();
 }
 
 class _EventCreationScreenState extends State<EventCreationScreen> {
@@ -153,8 +154,11 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                         decoration: const InputDecoration(
                           labelText: 'Beschreibung (optional)',
                         ),
-                        maxLength: Event.maxDescriptionLength,
-                        onChanged: (value) => vm.description = value,
+                        minLines: 1,
+                        maxLines: 5,
+                        onChanged: (value) {
+                          vm.description = cleanString(value);
+                        },
                       ),
                       const SizedBox(height: 16.0),
                       // Visibility selection.
