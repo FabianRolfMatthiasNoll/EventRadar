@@ -57,11 +57,9 @@ class SurveyDetailSheet extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Frage: unbegrenzt lang
                 Text(question, style: Theme.of(context).textTheme.titleLarge),
                 const SizedBox(height: 16),
 
-                // Optionen als einfache ListTiles
                 ...options.map((opt) {
                   final optId = opt['id'] as String;
                   final text = opt['text'] as String? ?? '';

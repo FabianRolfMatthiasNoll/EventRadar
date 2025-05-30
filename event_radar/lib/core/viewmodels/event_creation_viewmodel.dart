@@ -58,10 +58,18 @@ class EventCreationViewModel extends ChangeNotifier {
 
     try {
       final geoPoint = GeoPoint(location!.latitude, location!.longitude);
+
+      // Berechnen des Ablaufdatum: 30 Tage nach endDate (oder nach startDate, falls kein endDate)
+      final baseDate = endDateTime ?? dateTime!;
+      final expiryDate = Timestamp.fromDate(
+        baseDate.add(const Duration(days: 30)),
+      );
+
       final event = Event(
         title: title,
         startDate: dateTime!,
         endDate: endDateTime,
+        expiryDate: expiryDate,
         location: geoPoint,
         visibility: visibility,
         description: description.isNotEmpty ? description : null,

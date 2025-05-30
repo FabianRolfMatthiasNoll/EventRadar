@@ -120,6 +120,7 @@ class EventOverviewViewModel extends ChangeNotifier {
     });
   }
 
+  //TODO: Group together to one update function that also updates expiry date
   Future<void> updateDate(DateTime newDate, DateTime oldDate) async {
     await _eventService.updateEvent(eventId, {'date': newDate});
     await _eventService.logEventChange(eventId, {

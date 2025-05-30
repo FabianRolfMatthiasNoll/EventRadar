@@ -362,6 +362,7 @@ class _EventOverviewContent extends StatelessWidget {
                         onPressed: () => Navigator.pop(context),
                         child: const Text("Abbrechen"),
                       ),
+                      // TODO: Group Together to one update function
                       ElevatedButton(
                         onPressed: () {
                           Navigator.pop(context);

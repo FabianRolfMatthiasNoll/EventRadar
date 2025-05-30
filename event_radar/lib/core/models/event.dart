@@ -1,10 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+//TODO: Set up TLS index on expiry Date and publish cloud function to automatically delete events
 class Event {
   String? id; // Unique Firestore document ID, unknown until document creation
   final String title;
   final DateTime startDate;
   final DateTime? endDate;
+  final Timestamp expiryDate;
   final GeoPoint location;
   final String visibility;
   final String? description;
@@ -23,6 +25,7 @@ class Event {
     required this.title,
     required this.startDate,
     this.endDate,
+    required this.expiryDate,
     required this.location,
     required this.visibility,
     this.description,
@@ -37,6 +40,7 @@ class Event {
     final map = {
       attr.title: title,
       attr.startDate: startDate,
+      attr.expiryDate: expiryDate,
       attr.location: location,
       attr.visibility: visibility,
       attr.description: description,
@@ -59,6 +63,7 @@ class Event {
       id: doc.id,
       title: data[attr.title] ?? '',
       startDate: data[attr.startDate]?.toDate() ?? DateTime.now(),
+      expiryDate: data[attr.expiryDate] as Timestamp,
       endDate:
           data[attr.endDate] != null
               ? (data[attr.endDate] as Timestamp).toDate()
@@ -83,6 +88,7 @@ class EventAttributes {
   final title = 'title';
   final startDate = 'date';
   final endDate = 'endDate';
+  final expiryDate = 'expiryDate';
   final location = 'location';
   final visibility = 'visibility';
   final description = 'description';
